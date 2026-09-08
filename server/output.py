@@ -18,10 +18,12 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, ConfigDict, Field
 
 from retrieval import ClinicalRetrievalEngine, RetrievalResponse
 
@@ -35,7 +37,7 @@ load_dotenv()
 
 ANSWER_MODEL = os.getenv(
     "CLINICAL_ANSWER_MODEL",
-    "openai/gpt-oss-20b",
+    "gemini-2.5-flash",
 )
 
 MAX_QUESTION_CHARS = 6000
@@ -45,67 +47,46 @@ MAX_QUESTION_CHARS = 6000
 MAX_SQL_JSON_CHARS = 50000
 MAX_VECTOR_JSON_CHARS = 50000
 
-_groq = Groq()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set.")
+
+_gemini = genai.Client(api_key=GEMINI_API_KEY)
+
+
+
+# ---------------------------------------------------------------------------
+# Gemini structured-output models
+# ---------------------------------------------------------------------------
+
+class EvidenceUsedModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    source_type: Literal[
+        "report_metadata",
+        "lab_result",
+        "vector_report_text",
+        "vector_lab_text",
+    ]
+    report_id: Optional[str] = None
+    lab_result_id: Optional[str] = None
+    reason: str
+
+
+class ClinicalAnswerModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    answer: str
+    evidence_used: List[EvidenceUsedModel] = Field(default_factory=list)
+    evidence_sufficient: bool
+    uncertainty: str = ""
 
 
 # ---------------------------------------------------------------------------
 # Answer schema
 # ---------------------------------------------------------------------------
 
-ANSWER_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "answer": {
-            "type": "string"
-        },
-        "evidence_used": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "source_type": {
-                        "type": "string",
-                        "enum": [
-                            "report_metadata",
-                            "lab_result",
-                            "vector_report_text",
-                            "vector_lab_text"
-                        ]
-                    },
-                    "report_id": {
-                        "type": ["string", "null"]
-                    },
-                    "lab_result_id": {
-                        "type": ["string", "null"]
-                    },
-                    "reason": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "source_type",
-                    "report_id",
-                    "lab_result_id",
-                    "reason"
-                ],
-                "additionalProperties": False
-            }
-        },
-        "evidence_sufficient": {
-            "type": "boolean"
-        },
-        "uncertainty": {
-            "type": "string"
-        }
-    },
-    "required": [
-        "answer",
-        "evidence_used",
-        "evidence_sufficient",
-        "uncertainty"
-    ],
-    "additionalProperties": False
-}
+ANSWER_SCHEMA = ClinicalAnswerModel.model_json_schema()
 
 
 # ---------------------------------------------------------------------------
@@ -341,14 +322,14 @@ def _sanitize_vector_evidence(
 
         cleaned_payload = {
             "report_id": payload.get("report_id"),
-            "text": payload.get("text"),
+            "text": payload.get("chunk_text"),
             "report_type": payload.get("report_type"),
             "report_date": payload.get("report_date"),
             "referring_doctor": payload.get("referring_doctor"),
             "reported_date": payload.get("reported_date"),
             "patient_name": payload.get("patient_name"),
-            "patient_age": payload.get("age"),
-            "patient_sex": payload.get("sex"),
+            "patient_age": payload.get("patient_age_at_report"),
+            "patient_sex": payload.get("patient_sex"),
             "entity_types": payload.get("entity_types"),
             "investigation": payload.get("investigation"),
             "result_value": payload.get("result_value"),
@@ -487,42 +468,31 @@ Remember:
         # Final LLM call
         # -------------------------------------------------------------------
 
-        response = _groq.chat.completions.create(
+        chat = _gemini.chats.create(
             model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": ANSWER_SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt,
-                },
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "clinical_answer",
-                    "strict": True,
-                    "schema": ANSWER_SCHEMA,
-                },
-            },
-            temperature=0,
+            config=types.GenerateContentConfig(
+                temperature=0,
+                response_mime_type="application/json",
+                response_schema=ClinicalAnswerModel,
+            ),
         )
+        response = chat.send_message(user_prompt)
 
-        raw_content = response.choices[0].message.content
-
-        if not raw_content:
-            raise RuntimeError(
-                "Answer-generation model returned empty content."
-            )
-
-        try:
-            raw = json.loads(raw_content)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                "Answer-generation model returned invalid JSON."
-            ) from exc
+        parsed = getattr(response, "parsed", None)
+        if isinstance(parsed, BaseModel):
+            raw = parsed.model_dump()
+        else:
+            raw_content = (response.text or "").strip()
+            if not raw_content:
+                raise RuntimeError(
+                    "Gemini answer-generation model returned empty content."
+                )
+            try:
+                raw = json.loads(raw_content)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    "Gemini answer-generation model returned invalid JSON."
+                ) from exc
 
         # -------------------------------------------------------------------
         # Defensive normalization
@@ -607,7 +577,7 @@ if __name__ == "__main__":
     engine = ClinicalRetrievalEngine(test_patient_id)
 
     questions = [
-        "list all the reports i have",
+        "how are my x ray reports",
     ]
 
     for question in questions:

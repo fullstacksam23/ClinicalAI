@@ -3,5 +3,6 @@ myenv
 *.pdf
 *.txt
 qdrant_storage
+data/
 pdfs/
 __pycache__/

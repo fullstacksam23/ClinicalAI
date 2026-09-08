@@ -21,17 +21,50 @@ import re
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, ConfigDict
 
+from dotenv import load_dotenv
 from dateutil import parser as dateutil_parser
-from groq import Groq
+from google import genai
+from google.genai import types
 import json
+import os
 
-client = Groq()
+# metadata.py is imported by preprocessing.py before preprocessing has loaded
+# dotenv, so it must load the established server/.env itself when run as the
+# original script pipeline.
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set.")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 VALID_SEX_VALUES = {"M", "F", "O"}  # Male, Female, Other/Unknown — extend if needed
 MIN_AGE, MAX_AGE = 0, 120
 
 ISO_DATE_RE = re.compile(r'^\s*(\d{4})-(\d{2})-(\d{2})')
+
+
+@dataclass
+class ExtractedField:
+    value: Optional[object]
+    extraction_method: str
+    flagged_for_review: bool
+    note: str = ""
+
+
+@dataclass
+class ReportFields:
+    patient_name: ExtractedField
+    patient_age: ExtractedField
+    patient_sex: ExtractedField
+    report_date: ExtractedField
+    reported_date: ExtractedField
+    referring_doctor: ExtractedField
+    report_type: ExtractedField
+
+    def to_dict(self):
+        return {name: asdict(value) for name, value in self.__dict__.items()}
 
 
 def safe_parse_date(raw_value: str):
@@ -53,68 +86,20 @@ def safe_parse_date(raw_value: str):
     return dateutil_parser.parse(raw_value, fuzzy=True, dayfirst=True)
 
 
-EXTRACTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "patient_name": {
-            "type": ["string", "null"]
-        },
-        "patient_age": {
-            "type": ["integer", "null"]
-        },
-        "patient_sex": {
-            "type": ["string", "null"],
-            "enum": ["M", "F", "O", None]
-        },
-        "report_date": {
-            "type": ["string", "null"]
-        },
-        "reported_date": {
-            "type": ["string", "null"]
-        },
-        "referring_doctor": {
-            "type": ["string", "null"]
-        },
-        "report_type": {
-            "type": ["string", "null"]
-        }
-    },
-    "required": [
-        "patient_name",
-        "patient_age",
-        "patient_sex",
-        "report_date",
-        "reported_date",
-        "referring_doctor",
-        "report_type"
-    ],
-    "additionalProperties": False
-}
+
+class ExtractionModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    patient_name: Optional[str] = None
+    patient_age: Optional[int] = None
+    patient_sex: Optional[str] = None
+    report_date: Optional[str] = None
+    reported_date: Optional[str] = None
+    referring_doctor: Optional[str] = None
+    report_type: Optional[str] = None
 
 
-@dataclass
-class ExtractedField:
-    value: Optional[object]
-    extraction_method: str  # "llm", "llm+ner_agree", "unvalidated", "failed_validation"
-    flagged_for_review: bool
-    note: str = ""
-
-
-@dataclass
-class ReportFields:
-    patient_name: ExtractedField
-    patient_age: ExtractedField
-    patient_sex: ExtractedField
-    report_date: ExtractedField      # collection/specimen date — canonical for date-range filtering
-    reported_date: ExtractedField    # finalization date, kept separately per the ambiguity caution
-    referring_doctor: ExtractedField
-    report_type: ExtractedField
-
-    def to_dict(self):
-        return {k: asdict(v) for k, v in asdict(self).items()} if False else {
-            k: asdict(v) for k, v in self.__dict__.items()
-        }
-
+EXTRACTION_SCHEMA = ExtractionModel.model_json_schema()
 
 def build_llm_input_text(blocks_by_label: dict, full_prose: str) -> str:
     """
@@ -140,33 +125,51 @@ def build_llm_input_text(blocks_by_label: dict, full_prose: str) -> str:
 
 def extract_fields_with_llm(input_text: str) -> dict:
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Extract structured identifying fields from a clinical report. "
-                    "Use null when a field is not clearly present. "
-                    "Never guess or infer information that is not supported by the text."
-                ),
-            },
-            {
-                "role": "user",
-                "content": input_text,
-            },
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "extract_report_fields",
-                "strict": True,
-                "schema": EXTRACTION_SCHEMA,
-            },
-        },
+    system_prompt = (
+        "Extract structured identifying fields from a clinical report. "
+        "Use null when a field is not clearly present. "
+        "Never guess or infer information that is not supported by the text."
     )
 
-    return json.loads(response.choices[0].message.content)
+    system_prompt = (
+        "Extract structured identifying fields from a clinical report. "
+        "Use null when a field is not clearly present. "
+        "Never guess or infer information that is not supported by the text."
+    )
+
+    chat = client.chats.create(
+        model=os.getenv(
+            "CLINICAL_METADATA_MODEL",
+            "gemini-3.5-flash-lite",
+        ),
+        config=types.GenerateContentConfig(
+            temperature=0,
+            response_mime_type="application/json",
+            response_schema=ExtractionModel,
+            system_instruction=system_prompt,
+        ),
+    )
+
+    response = chat.send_message(input_text)
+
+    parsed = getattr(response, "parsed", None)
+
+    if isinstance(parsed, BaseModel):
+        return parsed.model_dump()
+
+    raw_text = (response.text or "").strip()
+
+    if not raw_text:
+        raise RuntimeError(
+            "Gemini metadata extraction returned empty content."
+        )
+
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "Gemini metadata extraction returned invalid JSON."
+        ) from exc
 
 
 def validate_date(raw_value: Optional[str]) -> ExtractedField:

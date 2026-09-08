@@ -142,7 +142,7 @@ def named_entity_recognition(text, min_score=NER_MIN_SCORE):
 
 
 if __name__ == "__main__":
-    fields, lab_df, clean_text, entities = ProcessFile("./pdfs/biochem1.pdf")
+    fields, lab_df, clean_text, entities = ProcessFile("./pdfs/hematology1.pdf")
     report_id, patient_id = save_report(fields, lab_df, clean_text)
 
     embed_report(

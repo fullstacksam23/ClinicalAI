@@ -39,7 +39,9 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, ConfigDict, Field
 
 from db import (
     get_abnormal_results,
@@ -56,7 +58,7 @@ load_dotenv()
 # Configuration
 # ---------------------------------------------------------------------------
 
-ROUTER_MODEL = os.getenv("CLINICAL_ROUTER_MODEL", "openai/gpt-oss-20b")
+ROUTER_MODEL = os.getenv("CLINICAL_ROUTER_MODEL", "gemini-2.5-flash-lite")
 ROUTER_MAX_QUESTION_CHARS = 6000
 DEFAULT_VECTOR_RESULTS = 6
 DEFAULT_VECTOR_SCORE_THRESHOLD = 0.30
@@ -65,7 +67,45 @@ DEFAULT_VECTOR_SCORE_THRESHOLD = 0.30
 # the authenticated patient's ID into ClinicalRetrievalEngine(...).
 TEST_PATIENT_ID = os.getenv("TEST_PATIENT_ID")
 
-_groq = Groq()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set in the environment.")
+
+_gemini = genai.Client(api_key=GEMINI_API_KEY)
+
+
+
+# ---------------------------------------------------------------------------
+# Gemini structured-output models
+# ---------------------------------------------------------------------------
+
+class RetrievalPlanModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    operation: Literal[
+        "list_reports",
+        "lab_values",
+        "abnormal_labs",
+        "latest_labs",
+        "lab_trend",
+        "none",
+    ]
+    analytes: List[str] = Field(default_factory=list)
+    doctor: Optional[str] = None
+    report_type: Optional[str] = None
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    search_query: Optional[str] = None
+    limit: int = Field(default=6, ge=1, le=20)
+    reason: str
+
+
+class ReportSelectionModel(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    selected_report_ids: List[str] = Field(default_factory=list)
+    needs_lab_results: bool
+    reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -74,46 +114,7 @@ _groq = Groq()
 
 # Deliberately NO patient_id property here.
 # Also deliberately NO mode property: both retrieval systems always run.
-ROUTER_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "operation": {
-            "type": "string",
-            "enum": [
-                "list_reports",
-                "lab_values",
-                "abnormal_labs",
-                "latest_labs",
-                "lab_trend",
-                "none",
-            ],
-        },
-        "analytes": {
-            "type": "array",
-            "items": {"type": "string"},
-            "maxItems": 12,
-        },
-        "doctor": {"type": ["string", "null"]},
-        "report_type": {"type": ["string", "null"]},
-        "date_from": {"type": ["string", "null"]},
-        "date_to": {"type": ["string", "null"]},
-        "search_query": {"type": ["string", "null"]},
-        "limit": {"type": "integer", "minimum": 1, "maximum": 20},
-        "reason": {"type": "string"},
-    },
-    "required": [
-        "operation",
-        "analytes",
-        "doctor",
-        "report_type",
-        "date_from",
-        "date_to",
-        "search_query",
-        "limit",
-        "reason",
-    ],
-    "additionalProperties": False,
-}
+ROUTER_SCHEMA = RetrievalPlanModel.model_json_schema()
 
 
 ROUTER_SYSTEM_PROMPT = """
@@ -219,24 +220,26 @@ class RetrievalPlanner:
         if len(question) > ROUTER_MAX_QUESTION_CHARS:
             question = question[:ROUTER_MAX_QUESTION_CHARS]
 
-        response = _groq.chat.completions.create(
+        chat = _gemini.chats.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
-                {"role": "user", "content": question},
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "clinical_retrieval_plan",
-                    "strict": True,
-                    "schema": ROUTER_SCHEMA,
-                },
-            },
-            temperature=0,
+            config=types.GenerateContentConfig(
+                temperature=0,
+                response_mime_type="application/json",
+                response_schema=RetrievalPlanModel,
+            ),
+        )
+        response = chat.send_message(
+            f"{ROUTER_SYSTEM_PROMPT}\n\nUSER QUESTION:\n{question}"
         )
 
-        raw = json.loads(response.choices[0].message.content)
+        parsed = getattr(response, "parsed", None)
+        if isinstance(parsed, BaseModel):
+            raw = parsed.model_dump()
+        else:
+            raw_text = (response.text or "").strip()
+            if not raw_text:
+                raise RuntimeError("Gemini retrieval planner returned empty content.")
+            raw = json.loads(raw_text)
 
         # Defensive normalization; do not trust model-generated values.
         operation = raw.get("operation")
@@ -271,20 +274,7 @@ class RetrievalPlanner:
 # SQL / structured retrieval
 # ---------------------------------------------------------------------------
 
-REPORT_SELECTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "selected_report_ids": {
-            "type": "array",
-            "items": {"type": "string"},
-            "maxItems": 20,
-        },
-        "needs_lab_results": {"type": "boolean"},
-        "reason": {"type": "string"},
-    },
-    "required": ["selected_report_ids", "needs_lab_results", "reason"],
-    "additionalProperties": False,
-}
+REPORT_SELECTION_SCHEMA = ReportSelectionModel.model_json_schema()
 
 
 REPORT_SELECTION_SYSTEM_PROMPT = """
@@ -344,34 +334,34 @@ class ReportSelectionPlanner:
             if row.get("id") is not None
         }
 
-        response = _groq.chat.completions.create(
+        chat = _gemini.chats.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": REPORT_SELECTION_SYSTEM_PROMPT},
+            config=types.GenerateContentConfig(
+                temperature=0,
+                response_mime_type="application/json",
+                response_schema=ReportSelectionModel,
+            ),
+        )
+        response = chat.send_message(
+            json.dumps(
                 {
-                    "role": "user",
-                    "content": json.dumps(
-                        {
-                            "question": question,
-                            "reports": report_metadata,
-                        },
-                        ensure_ascii=False,
-                        default=str,
-                    ),
+                    "question": question,
+                    "reports": report_metadata,
                 },
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "select_clinical_reports",
-                    "strict": True,
-                    "schema": REPORT_SELECTION_SCHEMA,
-                },
-            },
-            temperature=0,
+                ensure_ascii=False,
+                default=str,
+            )
         )
 
-        raw = json.loads(response.choices[0].message.content)
+        parsed = getattr(response, "parsed", None)
+        if isinstance(parsed, BaseModel):
+            raw = parsed.model_dump()
+        else:
+            raw_text = (response.text or "").strip()
+            if not raw_text:
+                raise RuntimeError("Gemini report selector returned empty content.")
+            raw = json.loads(raw_text)
+
         requested_ids = [str(x).strip() for x in (raw.get("selected_report_ids") or [])]
 
         # Critical backend authorization check: the model can only select IDs
@@ -386,6 +376,7 @@ class ReportSelectionPlanner:
 
 
 class PatientScopedSQLRetriever:
+
 
     def __init__(
         self,
@@ -408,8 +399,6 @@ class PatientScopedSQLRetriever:
     def _get_lab_results_for_reports(
         self,
         report_ids: List[str],
-        *,
-        limit: int,
     ) -> List[Dict[str, Any]]:
         if not report_ids:
             return []
@@ -423,11 +412,10 @@ class PatientScopedSQLRetriever:
         response = (
             supabase.table("lab_results")
             .select(
-                "id, report_id, investigation, result_value, "
-                "ref_interval_raw, method"
+                "id, report_id, investigation, result_value, result_numeric, "
+                "result_unit, ref_interval_raw, ref_low, ref_high, method"
             )
             .in_("report_id", report_ids)
-            .limit(max(1, min(limit, 100)))
             .execute()
         )
 
@@ -440,8 +428,6 @@ class PatientScopedSQLRetriever:
     def run(
         self,
         question: str,
-        *,
-        limit: int = 20,
     ) -> Dict[str, Any]:
         """
         Execute the complete two-stage SQL retrieval pipeline.
@@ -480,7 +466,6 @@ class PatientScopedSQLRetriever:
         if selection.needs_lab_results:
             labs = self._get_lab_results_for_reports(
                 selection.selected_report_ids,
-                limit=limit,
             )
 
         return {
@@ -579,7 +564,7 @@ class ClinicalRetrievalEngine:
         # Stage 1 retrieves the patient's report metadata; stage 2 uses an LLM
         # only to select IDs from that already-authorized inventory and decide
         # whether lab_results are needed. The backend executes the actual DB query.
-        sql_results = self.sql.run(question, limit=plan.limit)
+        sql_results = self.sql.run(question)
 
         # ALWAYS run semantic vector retrieval as well. The LLM only supplies the
         # semantic query text; patient_id remains fixed inside PatientScopedRetriever.
