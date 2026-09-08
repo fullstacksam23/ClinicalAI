@@ -2,3 +2,6 @@ myenv
 .env
 *.pdf
 *.txt
+qdrant_storage
+pdfs/
+__pycache__/
