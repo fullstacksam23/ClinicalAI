@@ -141,25 +141,25 @@ def named_entity_recognition(text, min_score=NER_MIN_SCORE):
     return entities
 
 
-if __name__ == "__main__":
-    fields, lab_df, clean_text, entities = ProcessFile("./pdfs/hematology1.pdf")
-    report_id, patient_id = save_report(fields, lab_df, clean_text)
+# if __name__ == "__main__":
+#     fields, lab_df, clean_text, entities = ProcessFile("./pdfs/hematology1.pdf")
+#     report_id, patient_id = save_report(fields, lab_df, clean_text)
 
-    embed_report(
-        report_id=str(report_id),
-        patient_id=str(patient_id),
-        clean_text=clean_text,
-        fields=fields,
-        entities=entities,
-    )
+#     embed_report(
+#         report_id=str(report_id),
+#         patient_id=str(patient_id),
+#         clean_text=clean_text,
+#         fields=fields,
+#         entities=entities,
+#     )
 
-    # Companion step — synthesizes prose sentences from the lab table and
-    # embeds those too, so lab VALUES become semantically searchable
-    # (previously only report prose was). No-ops cleanly if lab_df is
-    # empty (e.g. this radiology report has no lab table).
-    embed_lab_results(
-        report_id=str(report_id),
-        lab_df=lab_df,
-        fields=fields,
-        patient_id=str(patient_id),
-    )
+#     # Companion step — synthesizes prose sentences from the lab table and
+#     # embeds those too, so lab VALUES become semantically searchable
+#     # (previously only report prose was). No-ops cleanly if lab_df is
+#     # empty (e.g. this radiology report has no lab table).
+#     embed_lab_results(
+#         report_id=str(report_id),
+#         lab_df=lab_df,
+#         fields=fields,
+#         patient_id=str(patient_id),
+#     )

@@ -1,9 +1,3 @@
-"""Thin HTTP adapter for the existing ClinicalAI pipeline.
-
-This module intentionally contains no OCR, extraction, embedding, retrieval, or
-answer-generation logic. It only validates browser requests, resolves the
-server-owned prototype patient context, and calls the established modules.
-"""
 from __future__ import annotations
 
 import json
@@ -16,17 +10,22 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-
+from preprocessing import ProcessFile
+from db import save_report
+from embedding import embed_report, embed_lab_results, delete_report_vectors
+from output import answer_question
 # The established pipeline's credentials live beside its modules in
 # ``server/.env``. Resolve that file explicitly so starting Uvicorn from the
 # repository root exposes the identical configuration to db.py and the other
 # existing pipeline modules.
-load_dotenv(Path(__file__).resolve().parent / ".env")
+
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("clinicalai.api")
 
@@ -39,12 +38,14 @@ if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 UPLOAD_DIR = Path(os.getenv("CLINICALAI_UPLOAD_DIR", str(ROOT / "data" / "uploads"))).resolve()
 INDEX_PATH = UPLOAD_DIR / "documents.json"
+CONVERSATIONS_PATH = UPLOAD_DIR / "conversations.json"
 MAX_UPLOAD_BYTES = int(os.getenv("CLINICALAI_MAX_UPLOAD_MB", "25")) * 1024 * 1024
 EXTERNAL_PATIENT_ID = os.getenv("CLINICALAI_EXTERNAL_PATIENT_ID", "test_patient_001")
 
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=6000)
+    conversation_id: str | None = None
 
 
 class ChatMessage(BaseModel):
@@ -74,6 +75,34 @@ def _save_index(index: dict[str, dict[str, Any]]) -> None:
     temporary = INDEX_PATH.with_suffix(".tmp")
     temporary.write_text(json.dumps(index, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     temporary.replace(INDEX_PATH)
+
+
+def _load_conversations() -> dict[str, dict[str, Any]]:
+    if not CONVERSATIONS_PATH.exists():
+        return {}
+    try:
+        value = json.loads(CONVERSATIONS_PATH.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        logger.warning("Could not read conversation store", exc_info=True)
+        return {}
+
+
+def _save_conversations(conversations: dict[str, dict[str, Any]]) -> None:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    temporary = CONVERSATIONS_PATH.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps(conversations, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    temporary.replace(CONVERSATIONS_PATH)
+
+
+def _conversation_for_patient(
+    conversation: dict[str, Any],
+    patient_id: str,
+) -> bool:
+    return str(conversation.get("patient_id")) == str(patient_id)
 
 
 def _patient_id() -> str:
@@ -155,15 +184,21 @@ def get_document(document_id: str) -> dict[str, Any]:
 
 @app.get("/api/documents/{document_id}/file")
 def get_document_file(document_id: str) -> FileResponse:
-    # Authorization is enforced by proving the document belongs to the server-owned current scope.
     if document_id not in {str(row.get("id")) for row in _existing_reports()}:
         raise HTTPException(404, "Document not found.")
+
     record = _load_index().get(document_id)
     path = Path(record.get("file_path", "")) if record else None
+
     if not path or not path.is_file() or UPLOAD_DIR not in path.resolve().parents:
         raise HTTPException(404, "The original PDF is not available for this document.")
-    return FileResponse(path, media_type="application/pdf", filename=record.get("filename", "document.pdf"))
 
+    return FileResponse(
+        path=path,
+        media_type="application/pdf",
+        filename=record.get("filename", "document.pdf"),
+        content_disposition_type="inline",
+    )
 
 @app.get("/api/documents/{document_id}/status")
 def get_document_status(document_id: str) -> dict[str, Any]:
@@ -173,6 +208,37 @@ def get_document_status(document_id: str) -> dict[str, Any]:
             return {"id": document_id, "status": "processed"}
         raise HTTPException(404, "Document not found.")
     return {"id": document_id, "status": record.get("status", "processed"), "error": record.get("error")}
+
+
+@app.delete("/api/documents/{document_id}", status_code=204)
+def delete_document(document_id: str) -> None:
+    patient_id = _patient_id()
+    index = _load_index()
+    local = index.get(document_id)
+
+    # Failed uploads have no Supabase/vector record; they are still removable.
+    report_ids = {str(row.get("id")) for row in _existing_reports()}
+    if document_id not in report_ids and not local:
+        raise HTTPException(404, "Document not found.")
+
+    if document_id in report_ids:
+        try:
+            delete_report_vectors(document_id)
+            from db import delete_report
+            if not delete_report(document_id, patient_id):
+                raise HTTPException(404, "Document not found.")
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.exception("Could not delete document %s", document_id)
+            raise HTTPException(502, "Document could not be deleted completely.") from exc
+
+    if local:
+        path = Path(local.get("file_path", ""))
+        if path and path.is_file() and UPLOAD_DIR in path.resolve().parents:
+            path.unlink()
+        index.pop(document_id, None)
+        _save_index(index)
 
 
 @app.post("/api/documents/upload", status_code=201)
@@ -199,9 +265,7 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
             raise HTTPException(415, "The uploaded file is not a valid PDF.")
 
         # Existing protected ingestion sequence: OCR -> metadata/NER -> SQL -> vector storage.
-        from preprocessing import ProcessFile
-        from db import save_report
-        from embedding import embed_report, embed_lab_results
+
         fields, lab_df, clean_text, entities = ProcessFile(str(path))
         report_id, patient_id = save_report(fields, lab_df, clean_text, external_patient_id=EXTERNAL_PATIENT_ID)
         if str(patient_id) != _patient_id():
@@ -226,15 +290,121 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
         await file.close()
 
 
+@app.get("/api/conversations")
+def list_conversations() -> list[dict[str, Any]]:
+    patient_id = _patient_id()
+    conversations = _load_conversations().values()
+    visible = [
+        {
+            "id": str(c["id"]),
+            "title": c.get("title") or "New chat",
+            "created_at": c.get("created_at"),
+            "updated_at": c.get("updated_at"),
+            "message_count": len(c.get("messages", [])),
+        }
+        for c in conversations
+        if _conversation_for_patient(c, patient_id)
+    ]
+    return sorted(
+        visible,
+        key=lambda item: item.get("updated_at") or item.get("created_at") or "",
+        reverse=True,
+    )
+
+
+@app.get("/api/conversations/{conversation_id}")
+def get_conversation(conversation_id: str) -> dict[str, Any]:
+    patient_id = _patient_id()
+    conversation = _load_conversations().get(conversation_id)
+    if not conversation or not _conversation_for_patient(conversation, patient_id):
+        raise HTTPException(404, "Conversation not found.")
+    return {
+        "id": str(conversation["id"]),
+        "title": conversation.get("title") or "New chat",
+        "created_at": conversation.get("created_at"),
+        "updated_at": conversation.get("updated_at"),
+        "messages": conversation.get("messages", []),
+    }
+
+
+@app.delete("/api/conversations/{conversation_id}", status_code=204)
+def delete_conversation(conversation_id: str) -> None:
+    patient_id = _patient_id()
+    conversations = _load_conversations()
+    conversation = conversations.get(conversation_id)
+    if not conversation or not _conversation_for_patient(conversation, patient_id):
+        raise HTTPException(404, "Conversation not found.")
+    del conversations[conversation_id]
+    _save_conversations(conversations)
+
+
 @app.post("/api/chat")
 def chat(payload: ChatRequest) -> dict[str, Any]:
+    patient_id = _patient_id()
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(422, "Question cannot be empty.")
+
+    conversations = _load_conversations()
+    conversation_id = payload.conversation_id
+
+    if conversation_id:
+        conversation = conversations.get(conversation_id)
+        if not conversation or not _conversation_for_patient(conversation, patient_id):
+            raise HTTPException(404, "Conversation not found.")
+    else:
+        conversation_id = str(uuid.uuid4())
+        now = _utc_now()
+        conversation = {
+            "id": conversation_id,
+            "patient_id": str(patient_id),
+            "title": question[:80] + ("…" if len(question) > 80 else ""),
+            "created_at": now,
+            "updated_at": now,
+            "messages": [],
+        }
+        conversations[conversation_id] = conversation
+
     try:
-        from output import answer_question
-        result = answer_question(payload.question.strip(), _patient_id())
+        result = answer_question(question, patient_id)
         data = result.to_dict()
-        return {"answer": data["answer"], "sources": data["evidence_used"], "evidence_sufficient": data["evidence_sufficient"], "uncertainty": data["uncertainty"]}
+        sources = data["evidence_used"]
+
+        now = _utc_now()
+        conversation["messages"].append(
+            {
+                "role": "user",
+                "content": question,
+                "created_at": now,
+                "sources": [],
+            }
+        )
+        conversation["messages"].append(
+            {
+                "role": "assistant",
+                "content": data["answer"],
+                "created_at": now,
+                "sources": sources,
+            }
+        )
+        conversation["updated_at"] = now
+
+        if not conversation.get("title") or conversation.get("title") == "New chat":
+            conversation["title"] = question[:80] + ("…" if len(question) > 80 else "")
+
+        _save_conversations(conversations)
+
+        return {
+            "conversation_id": conversation_id,
+            "answer": data["answer"],
+            "sources": sources,
+            "evidence_sufficient": data["evidence_sufficient"],
+            "uncertainty": data["uncertainty"],
+        }
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Chat request failed")
         raise HTTPException(502, "ClinicalAI could not answer right now. Please try again.") from exc
@@ -242,8 +412,19 @@ def chat(payload: ChatRequest) -> dict[str, Any]:
 
 @app.get("/api/chat/history")
 def chat_history() -> list[ChatMessage]:
-    # The existing RAG pipeline has no conversation persistence; the UI owns ephemeral history.
-    return []
+    # Backwards-compatible endpoint: return messages from the newest saved conversation.
+    patient_id = _patient_id()
+    visible = [
+        c for c in _load_conversations().values()
+        if _conversation_for_patient(c, patient_id)
+    ]
+    if not visible:
+        return []
+    newest = max(
+        visible,
+        key=lambda c: c.get("updated_at") or c.get("created_at") or "",
+    )
+    return newest.get("messages", [])
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")

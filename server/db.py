@@ -428,6 +428,24 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     return query.execute().data
 
 
+def delete_report(report_id, patient_id):
+    """Delete one patient-scoped report and its dependent Supabase rows."""
+    report_id = str(report_id)
+    patient_id = str(patient_id)
+    owned = (supabase.table("reports").select("id")
+             .eq("id", report_id).eq("patient_id", patient_id)
+             .limit(1).execute().data or [])
+    if not owned:
+        return False
+
+    # Delete explicitly so this remains correct even if foreign-key cascades
+    # are not enabled in an existing deployment.
+    for table in ("lab_results", "extraction_provenance"):
+        supabase.table(table).delete().eq("report_id", report_id).execute()
+    supabase.table("reports").delete().eq("id", report_id).eq("patient_id", patient_id).execute()
+    return True
+
+
 def _in_range(row):
     """True/False/None (None = no reference range available to check against)."""
     value, low, high = row.get("result_numeric"), row.get("ref_low"), row.get("ref_high")

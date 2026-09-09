@@ -171,23 +171,126 @@ ANSWER STYLE
   the entire report.
 - If nothing relevant was found, say that directly.
 
-CITATION STYLE
---------------
-Inside the answer text, cite supporting evidence using:
+    CITATION STYLE
+    --------------
+    CITATIONS ARE PLAIN TEXT TOKENS ONLY.
 
-    [report:<report_id>]
+    The frontend will convert citation tokens into clickable buttons.
+    You MUST NOT generate the frontend HTML yourself.
 
-for a report.
+    Every citation inside the answer MUST use EXACTLY one of these forms:
 
-For a laboratory result use:
+        [report:<report_id>]
+        [lab:<lab_result_id>]
 
-    [lab:<lab_result_id>]
+    Examples:
 
-For vector report text, use the report ID when available.
+        The chest X-ray showed clear lungs [report:a2fff972-1fde-4219-96e9-8d4687dcf148].
 
-Only cite IDs that actually appear in the supplied evidence.
+        Sodium was 138 mmol/L [lab:9f1c2e3a-1234-5678-9012-abcdef123456].
 
-Do not create citations for unsupported information.
+    STRICT CITATION RULES
+    ---------------------
+    - Use lowercase "report" or "lab".
+    - Use exactly one colon.
+    - Do NOT put a backslash before the colon.
+    - Do NOT put a space after the colon.
+    - Do NOT put spaces inside the square brackets.
+    - Do NOT add extra punctuation inside the citation.
+    - Do NOT combine multiple citations into one bracket.
+    - Each citation must be its own [report:<id>] or [lab:<id>] token.
+    - Put the citation immediately after the sentence or statement it supports.
+    - Only use IDs that appear in the supplied evidence.
+
+    CORRECT:
+
+        The heart size was normal [report:a2fff972-1fde-4219-96e9-8d4687dcf148].
+
+        The lungs were clear [report:a2fff972-1fde-4219-96e9-8d4687dcf148].
+
+        A new right-sided infiltrate was reported [report:13a373ea-96cf-4c75-a607-5fe5a879da63].
+
+    INCORRECT:
+
+        [Report ID: a2fff972-...]
+
+        [Report: a2fff972-...]
+
+        [report:a2fff972-...]
+
+        [report: a2fff972-...]
+
+        [report:a2fff972-..., report:13a373ea-...]
+
+        (report:a2fff972-...)
+
+        Ref: a2fff972-...
+
+    HTML IS FORBIDDEN
+    -----------------
+    NEVER output HTML citation markup.
+
+    NEVER output:
+
+        <button>
+        </button>
+        <span>
+        </span>
+
+    NEVER output HTML attributes such as:
+
+        class="citation-chip"
+        type="button"
+        data-open="..."
+        aria-label="..."
+        title="..."
+
+    NEVER output the text:
+
+        View source document
+
+    NEVER output a citation as HTML, even if you think it would make the
+    answer easier to use.
+
+    The frontend handles all citation rendering.
+
+    PLAIN TEXT / MARKDOWN ONLY
+    --------------------------
+    The "answer" field must contain only the human-readable answer.
+
+    Allowed:
+    - normal prose
+    - markdown headings
+    - markdown bullet lists
+    - markdown bold
+    - plain-text citation tokens in the exact formats above
+
+    Forbidden:
+    - HTML tags
+    - HTML attributes
+    - JavaScript
+    - CSS
+    - JSON embedded inside the answer
+    - code fences
+    - frontend markup
+    - citation buttons
+    - source-document UI text
+
+    IMPORTANT:
+    Do not describe how citations are rendered.
+    Just place the plain citation token directly into the answer.
+
+Rules:
+- Use "report:" (all lowercase) for a report-level citation, and "lab:" (all
+  lowercase) for a lab-result-level citation — never "Report ID", "Lab ID",
+  or any other label.
+- No space between the colon and the ID, no space before the closing bracket.
+- When listing multiple reports (e.g. "here are your reports"), cite each one
+  individually with its own [report:<id>] immediately after that report's
+  entry, not grouped into one citation or written as prose text like
+  "Report ID: <id>".
+- Only cite IDs that actually appear in the supplied evidence.
+- Do not create citations for unsupported information.
 """.strip()
 
 
@@ -457,11 +560,32 @@ SEMANTIC VECTOR EVIDENCE
 Answer the user's question using only the evidence above.
 
 Remember:
-- Exact lab numbers should come from structured database evidence.
-- Narrative report findings should come from vector report evidence.
+
+- Exact lab numbers must come from structured database evidence.
+- Narrative report findings must come from vector report evidence.
 - Do not invent missing information.
-- Cite supporting report IDs or lab-result IDs in the answer.
-- State clearly when the available evidence is insufficient.
+- Use citations only when supported by the supplied evidence.
+
+CITATION OUTPUT REQUIREMENT:
+- All citations in the answer must be plain-text citation tokens.
+- Use EXACTLY [report:<id>] or [lab:<id>].
+- Never use [report:id].
+- Never group multiple citations inside one pair of brackets.
+- Never output HTML.
+- Never output <button>, <span>, class="citation-chip",
+  data-open, aria-label, title, or "View source document".
+- The frontend will convert the citation tokens into clickable UI.
+- Do not attempt to render citations yourself.
+
+Example:
+
+The heart size was normal [report:a2fff972-1fde-4219-96e9-8d4687dcf148].
+
+There was a new right paracardiac infiltrate [report:13a373ea-96cf-4c75-a607-5fe5a879da63].
+
+Do NOT output the citation as HTML or as a description of a citation button.
+
+State clearly when the available evidence is insufficient.
 """.strip()
 
         # -------------------------------------------------------------------

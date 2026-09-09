@@ -290,6 +290,19 @@ def query_patient_chunks(query_text, patient_id, n_results=5, score_threshold=0.
     )
 
 
+def delete_report_vectors(report_id):
+    """Remove every prose and lab chunk belonging to a report."""
+    condition = FieldCondition(
+        key="report_id",
+        match=MatchValue(value=str(report_id)),
+    )
+    qdrant_client.delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=Filter(must=[condition]),
+        wait=True,
+    )
+
+
 # --- usage ---
 # fields, lab_df, clean_text, entities = ProcessFile("rad1.pdf")
 # embed_report(report_id="rad1", clean_text=clean_text, fields=fields, entities=entities)

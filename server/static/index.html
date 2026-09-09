@@ -10,13 +10,21 @@
     <aside class="sidebar"><a class="brand" href="#dashboard"><span class="brand-mark">✦</span>ClinicalAI</a>
       <nav aria-label="Main navigation">
         <a href="#dashboard" data-route="dashboard">Overview</a><a href="#documents" data-route="documents">Documents</a><a href="#health" data-route="health">Health record</a><a href="#chat" data-route="chat">Ask ClinicalAI</a>
-      </nav><div class="sidebar-foot"><span class="dot"></span> Private record workspace</div>
+      </nav>
+      <div class="sidebar-chats">
+        <button class="new-chat-btn" id="new-chat" type="button">+ New chat</button>
+        <div class="chat-list" id="chat-list"></div>
+      </div>
+      <div class="sidebar-foot"><span class="dot"></span> Private record workspace</div>
     </aside>
     <main><header><button class="menu" aria-label="Open navigation">☰</button><div><p class="eyebrow">YOUR PERSONAL HEALTH RECORD</p><h1 id="page-title">Overview</h1></div><button class="avatar" aria-label="Account">SO</button></header>
       <section id="view" aria-live="polite"></section>
     </main>
   </div>
   <div id="toast" role="status"></div>
-  <script src="/app.js"></script>
+  <script
+  type="module"
+  src="/app.js">
+</script>
 </body>
 </html>
