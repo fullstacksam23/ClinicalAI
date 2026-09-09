@@ -401,6 +401,44 @@ textarea:focus-visible{
   margin-bottom:3px
 }
 
+.summary-card{
+  margin-bottom:20px;
+  border-color:#c7e2d9;
+  background:#f7fcfa
+}
+
+.summary-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:10px
+}
+
+.summary-heading .eyebrow{margin:0}
+
+.summary-status{
+  border-radius:20px;
+  padding:5px 9px;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap
+}
+
+.summary-status.complete{background:#e1f4eb;color:#16714e}
+.summary-status.pending{background:#edf2f1;color:var(--muted)}
+.summary-status.failed{background:#fbe9e8;color:var(--red)}
+
+.summary-text{
+  max-width:850px;
+  margin:0;
+  color:var(--ink);
+  font-size:16px;
+  line-height:1.65
+}
+
+.summary-retry{margin-top:8px}
+
 /* ---------------------------------------------------------
    CHAT
    --------------------------------------------------------- */

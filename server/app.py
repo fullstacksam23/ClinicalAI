@@ -17,25 +17,32 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+
+# The pipeline modules use script-style imports (for example, ``from db``).
+# Add their directory before importing the FastAPI adapter's dependencies.
+PIPELINE_DIR = Path(__file__).resolve().parent
+if str(PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(PIPELINE_DIR))
+
 from preprocessing import ProcessFile
 from db import save_report
 from embedding import embed_report, embed_lab_results, delete_report_vectors
 from output import answer_question
+from summarization import _generate_report_summary
 # The established pipeline's credentials live beside its modules in
 # ``server/.env``. Resolve that file explicitly so starting Uvicorn from the
 # repository root exposes the identical configuration to db.py and the other
 # existing pipeline modules.
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=2)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("clinicalai.api")
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-# The protected pipeline has script-style imports (``from db import ...``).
-# Keep it executable both as its original scripts and through ``server.app``.
-PIPELINE_DIR = Path(__file__).resolve().parent
-if str(PIPELINE_DIR) not in sys.path:
-    sys.path.insert(0, str(PIPELINE_DIR))
 UPLOAD_DIR = Path(os.getenv("CLINICALAI_UPLOAD_DIR", str(ROOT / "data" / "uploads"))).resolve()
 INDEX_PATH = UPLOAD_DIR / "documents.json"
 CONVERSATIONS_PATH = UPLOAD_DIR / "conversations.json"
@@ -131,9 +138,10 @@ def _document_from_report(report: dict[str, Any], local: dict[str, Any] | None =
         "report_date": report.get("report_date") or local.get("metadata", {}).get("report_date"),
         "referring_doctor": report.get("referring_doctor") or local.get("metadata", {}).get("referring_doctor"),
         "metadata_flagged_for_review": bool(report.get("metadata_flagged_for_review")),
+        "summary": report.get("summary"),
+        "summary_status": report.get("summary_status") or ("completed" if report.get("summary") else "pending"),
         "has_file": bool(local.get("file_path") and Path(local["file_path"]).is_file()),
     }
-
 
 def _existing_reports() -> list[dict[str, Any]]:
     from db import get_reports_list
@@ -210,6 +218,31 @@ def get_document_status(document_id: str) -> dict[str, Any]:
     return {"id": document_id, "status": record.get("status", "processed"), "error": record.get("error")}
 
 
+@app.post("/api/documents/{document_id}/summary/retry")
+def retry_summary(document_id: str) -> dict[str, Any]:
+    patient_id = _patient_id()
+    from db import get_report_summary_input, update_report_summary
+
+    summary_input = get_report_summary_input(document_id, patient_id)
+    if not summary_input:
+        raise HTTPException(404, "Document not found.")
+
+    local = _load_index().get(document_id) or {}
+    update_report_summary(document_id, patient_id, "pending")
+    summary_status = _generate_report_summary(
+        document_id,
+        str(patient_id),
+        summary_input["clean_text"],
+        local.get("entities", []),
+        summary_input["lab_results"],
+    )
+    return {
+        "id": document_id,
+        "summary": summary_status["summary"],
+        "summary_status": summary_status["status"],
+    }
+
+
 @app.delete("/api/documents/{document_id}", status_code=204)
 def delete_document(document_id: str) -> None:
     patient_id = _patient_id()
@@ -271,13 +304,52 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
         if str(patient_id) != _patient_id():
             # Do not expose an upload if scope configuration changes during processing.
             raise RuntimeError("Ingestion returned a patient outside the application scope.")
-        embed_report(str(report_id), clean_text, fields, entities, patient_id=str(patient_id))
-        embed_lab_results(str(report_id), lab_df, fields, patient_id=str(patient_id))
+        def run_embeddings():
+            embed_report(
+                str(report_id),
+                clean_text,
+                fields,
+                entities,
+                patient_id=str(patient_id),
+            )
+
+            embed_lab_results(
+                str(report_id),
+                lab_df,
+                fields,
+                patient_id=str(patient_id),
+            )
+        def run_summary():
+            return _generate_report_summary(
+                str(report_id),
+                str(patient_id),
+                clean_text,
+                entities,
+                lab_df.to_dict(orient="records") if not lab_df.empty else [],
+            )
+        embedding_future = executor.submit(run_embeddings)
+        summary_future = executor.submit(run_summary)
+
         metadata = {name: field.value for name, field in fields.__dict__.items() if field.value not in (None, "")}
         index = _load_index()
         index[str(report_id)] = {"id": str(report_id), "filename": filename, "size": size, "uploaded_at": _utc_now(), "status": "processed", "file_path": str(path), "metadata": metadata, "entities": entities}
         _save_index(index)
-        return _document_from_report({"id": report_id, **metadata}, index[str(report_id)])
+
+        # Wait for both threads without blocking the async event loop
+        _, summary_result = await asyncio.gather(
+            asyncio.wrap_future(embedding_future),
+            asyncio.wrap_future(summary_future),
+        )
+
+        return _document_from_report(
+            {
+                "id": report_id,
+                **metadata,
+                "summary": summary_result["summary"],
+                "summary_status": summary_result["status"],
+            },
+            index[str(report_id)],
+        )
     except HTTPException:
         raise
     except Exception as exc:

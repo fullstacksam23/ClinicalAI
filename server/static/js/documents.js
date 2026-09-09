@@ -16,6 +16,70 @@ import {
   loadPdfIntoIframe
 } from './pdf.js';
 
+let summaryPollTimer = null;
+
+function summaryCard(documentData) {
+  const status = documentData.summary_status || 'pending';
+  if (status === 'completed' && documentData.summary) {
+    return `
+      <section class="summary-card card" id="summary-card">
+        <div class="summary-heading">
+          <span class="eyebrow">At a glance</span>
+          <span class="summary-status complete">Ready</span>
+        </div>
+        <p class="summary-text">${esc(documentData.summary)}</p>
+      </section>
+    `;
+  }
+
+  if (status === 'failed') {
+    return `
+      <section class="summary-card card" id="summary-card">
+        <div class="summary-heading">
+          <span class="eyebrow">At a glance</span>
+          <span class="summary-status failed">Unavailable</span>
+        </div>
+        <p class="muted">A patient-friendly summary could not be generated yet.</p>
+        <button class="button ghost summary-retry" data-summary-retry="${esc(documentData.id)}" type="button">
+          Try again
+        </button>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="summary-card card" id="summary-card">
+      <div class="summary-heading">
+        <span class="eyebrow">At a glance</span>
+        <span class="summary-status pending">Preparing</span>
+      </div>
+      <p class="muted">We are preparing a plain-language summary of this report.</p>
+    </section>
+  `;
+}
+
+async function pollSummary(id) {
+  try {
+    const documentData = await api('/documents/' + encodeURIComponent(id));
+    const card = document.querySelector('#summary-card');
+    if (!card) return;
+    card.outerHTML = summaryCard(documentData);
+    if ((documentData.summary_status || 'pending') === 'pending') {
+      summaryPollTimer = setTimeout(() => pollSummary(id), 2500);
+    }
+  } catch {
+    summaryPollTimer = setTimeout(() => pollSummary(id), 5000);
+  }
+}
+
+export async function retrySummary(id) {
+  clearTimeout(summaryPollTimer);
+  const result = await api('/documents/' + encodeURIComponent(id) + '/summary/retry', {
+    method: 'POST'
+  });
+  await documentView(id, result);
+}
+
 export async function loadDocs() {
   state.docs =
     await api('/documents');
@@ -491,7 +555,7 @@ async function upload(file) {
   );
 
   try {
-    await api(
+    const uploaded = await api(
       '/documents/upload',
       {
         method: 'POST',
@@ -503,7 +567,14 @@ async function upload(file) {
       'Document processed and added to your record.'
     );
 
-    documents();
+    state.summaryOverrides[uploaded.id] = {
+      summary: uploaded.summary,
+      summary_status: uploaded.summary_status,
+    };
+
+    location.hash =
+      '#documents/' +
+      encodeURIComponent(uploaded.id);
 
   } catch (e) {
     selected.textContent =
@@ -512,9 +583,17 @@ async function upload(file) {
 }
 
 export async function documentView(
-  id
+  id,
+  summaryOverride = null
 ) {
   cleanupPdfBlob();
+  clearTimeout(summaryPollTimer);
+
+  summaryOverride =
+    summaryOverride ||
+    state.summaryOverrides[id] ||
+    null;
+  delete state.summaryOverrides[id];
 
   title.textContent =
     'Document';
@@ -523,11 +602,14 @@ export async function documentView(
     '<div class="loading">Opening document…</div>';
 
   try {
-    const d =
+    const loaded =
       await api(
         '/documents/' +
           encodeURIComponent(id)
       );
+    const d = summaryOverride
+      ? { ...loaded, ...summaryOverride }
+      : loaded;
 
     const meta =
       Object.entries(
@@ -620,6 +702,8 @@ export async function documentView(
 
       </div>
 
+  ${summaryCard(d)}
+
       <div class="viewer">
 
         <div>
@@ -699,6 +783,10 @@ export async function documentView(
         ),
         id
       );
+    }
+
+    if ((d.summary_status || 'pending') === 'pending') {
+      summaryPollTimer = setTimeout(() => pollSummary(id), 2500);
     }
 
   } catch (e) {

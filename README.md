@@ -26,6 +26,16 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
 
 3. Copy `.env.example` to `.env` and add the existing pipeline credentials: Paddle OCR, Gemini, Supabase, and a running Qdrant service. Retain `CLINICALAI_EXTERNAL_PATIENT_ID=test_patient_001` for the current single-patient prototype.
 
+   Before uploading reports, add the summary fields to the existing Supabase `reports` table in the SQL editor:
+
+   ```sql
+   alter table reports add column if not exists summary text;
+   alter table reports add column if not exists summary_status text not null default 'pending';
+   alter table reports drop constraint if exists reports_summary_status_check;
+   alter table reports add constraint reports_summary_status_check
+      check (summary_status in ('pending', 'completed', 'failed'));
+   ```
+
 4. Start the product:
 
    ```powershell
@@ -42,6 +52,7 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
 - `GET /api/documents/{id}/file`
 - `GET /api/documents/{id}/status`
 - `POST /api/documents/upload` (multipart `file`, PDF, configurable 25 MB limit)
+- `POST /api/documents/{id}/summary/retry`
 - `POST /api/chat` (`{ "question": "..." }`)
 - `GET /api/chat/history` (empty because the existing RAG layer does not persist conversations)
 
@@ -58,3 +69,5 @@ python -m compileall server
 ```
 
 An end-to-end upload/chat test requires valid configured external services and a real PDF, because the API intentionally does not mock OCR, SQL, vector storage, or answer generation.
+
+Report summaries are generated in a FastAPI background task after OCR, NER, Supabase persistence, and vector indexing finish. The upload response is returned with `summary_status: pending`; the report detail view polls until the stored summary is `completed` or shows a retry action after `failed`. Summaries are read from Supabase on later loads and are never regenerated during page rendering.

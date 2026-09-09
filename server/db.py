@@ -100,6 +100,7 @@ def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
         "metadata_flagged_for_review": any_flagged,
         "extra_metadata": extra_metadata,
         "pipeline_version": pipeline_version,
+        "summary_status": "pending",
     }
 
     inserted = supabase.table("reports").insert(report_row).execute()
@@ -413,7 +414,7 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     """
     query = (
         supabase.table("reports")
-        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review")
+        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review, summary, summary_status")
         .eq("patient_id", patient_id)
         .order("report_date", desc=True)
     )
@@ -426,6 +427,45 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     if date_to:
         query = query.lte("report_date", date_to)
     return query.execute().data
+
+
+def get_report_summary_input(report_id, patient_id):
+    """Return the stored report text for a patient-scoped summary retry."""
+    report = (
+        supabase.table("reports")
+        .select("id, clean_text")
+        .eq("id", str(report_id))
+        .eq("patient_id", str(patient_id))
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not report:
+        return None
+
+    labs = (
+        supabase.table("lab_results")
+        .select("investigation, result_value, result_unit, ref_interval_raw")
+        .eq("report_id", str(report_id))
+        .execute()
+        .data
+        or []
+    )
+    return {"clean_text": report[0].get("clean_text") or "", "lab_results": labs}
+
+
+def update_report_summary(report_id, patient_id, status, summary=None):
+    """Update a summary only when the report belongs to the requested patient."""
+    payload = {"summary_status": status, "summary": summary}
+    return (
+        supabase.table("reports")
+        .update(payload)
+        .eq("id", str(report_id))
+        .eq("patient_id", str(patient_id))
+        .execute()
+        .data
+    )
 
 
 def delete_report(report_id, patient_id):

@@ -1,12 +1,14 @@
 from paddleocr import PaddleOCRClient, Model
 from dotenv import load_dotenv
 import os
+import time
 import pandas as pd
 from bs4 import BeautifulSoup
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 from embedding import embed_report, embed_lab_results
 from metadata import extract_report_fields
 from db import save_report
+from paddleocr._api_client.errors import InvalidRequestError
 
 load_dotenv()
 
@@ -39,10 +41,39 @@ _ocr_client = PaddleOCRClient(
 )
 
 def ProcessFile(file_path, patient_id=None):
-    result = _ocr_client.parse_document(
-        file_path=file_path,
-        model=PADDLE_OCR_MODEL,
-    )
+    max_retries = 20
+    retry_delay = 5
+
+    for attempt in range(max_retries):
+        try:
+            print(
+                f"[PaddleOCR] Submitting document "
+                f"(attempt {attempt + 1}/{max_retries})..."
+            )
+
+            result = _ocr_client.parse_document(
+                file_path=file_path,
+                model=PADDLE_OCR_MODEL,
+            )
+
+            print("[PaddleOCR] Successfully processed document.")
+            break
+
+        except InvalidRequestError as exc:
+            error = str(exc)
+
+            if "任务提交队列已满" not in error:
+                raise
+
+            if attempt == max_retries - 1:
+                raise
+
+            print(
+                f"[PaddleOCR] Queue is full. "
+                f"Waiting {retry_delay}s before retrying..."
+            )
+
+            time.sleep(retry_delay)
     blocks_by_label, lab_df, clean_text = process_ocr_result(result)
     _ocr_client.close()
 
@@ -76,7 +107,7 @@ def process_ocr_result(result):
     - lab_df: DataFrame of the lab table, if one exists (else empty)
     - clean_text: leftover prose text, for NER/RAG chunking
     """
-    page = result.pages[0]  # loop over result.pages for multi-page docs
+    page = result.pages[0]  # TODO: loop over result.pages for multi-page docs
     blocks = page.pruned_result['parsing_res_list']
 
     blocks_by_label = {}

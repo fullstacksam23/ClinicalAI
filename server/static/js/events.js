@@ -16,6 +16,10 @@ import {
 } from './documents.js';
 
 import {
+  retrySummary
+} from './documents.js';
+
+import {
   deleteChat
 } from './chat.js';
 
@@ -74,6 +78,14 @@ export function initGlobalHandlers() {
         if (!confirm('Delete this document and all associated medical data? This cannot be undone.')) return;
         api('/documents/' + encodeURIComponent(deleteDocumentButton.dataset.deleteDocument), { method: 'DELETE' })
           .then(() => renderDocs())
+          .catch(error => toast(error.message));
+        return;
+      }
+
+      const summaryRetry = e.target.closest('[data-summary-retry]');
+      if (summaryRetry) {
+        summaryRetry.disabled = true;
+        retrySummary(summaryRetry.dataset.summaryRetry)
           .catch(error => toast(error.message));
         return;
       }
