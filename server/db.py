@@ -14,6 +14,7 @@ user JWT so RLS does the enforcement at the database level instead.
 import os
 import re
 import uuid
+from datetime import datetime, timezone
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -87,10 +88,16 @@ def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
         if name not in PROMOTED_REPORT_FIELDS
     }
 
+    report_date = (
+        fields.report_date.value
+        or fields.reported_date.value
+        or datetime.now(timezone.utc).date().isoformat()
+    )
+
     report_row = {
         "patient_id": patient_id,
         "report_type": fields.report_type.value,
-        "report_date": fields.report_date.value,
+        "report_date": report_date,
         "reported_date": fields.reported_date.value,
         "referring_doctor": fields.referring_doctor.value,
         "patient_age_at_report": fields.patient_age.value,
@@ -133,17 +140,59 @@ def insert_lab_results(report_id, lab_df):
     if lab_df is None or lab_df.empty:
         return
 
+    def normalized(name):
+        return re.sub(r'[^a-z0-9]+', '', str(name).lower())
+
+    def column_for(*names):
+        wanted = {normalized(name) for name in names}
+        return next(
+            (column for column in lab_df.columns if normalized(column) in wanted),
+            None,
+        )
+
+    investigation_column = column_for(
+        "Investigation", "Test", "Test Name", "Parameter", "Analyte",
+        "Exam", "Description",
+    )
+    result_column = column_for(
+        "Result", "Value", "Observed Value", "Measured Value", "Result Value",
+        "Findings",
+    )
+    unit_column = column_for("Unit", "Units", "Result Unit")
+    ref_column = column_for(
+        "Biological Ref. Interval", "Reference Range", "Reference Interval",
+        "Normal Range", "Ref. Range", "Range",
+    )
+    method_column = column_for("Method", "Technique")
+
+    if not investigation_column or not result_column:
+        print(
+            f"[Labs] Skipping report {report_id}: could not identify lab columns. "
+            f"Found columns: {list(lab_df.columns)!r}"
+        )
+        return
+
+    print(
+        f"[Labs] Saving {len(lab_df)} rows for report {report_id} "
+        f"using columns: investigation={investigation_column!r}, "
+        f"result={result_column!r}"
+    )
+
     rows = []
     for _, row in lab_df.iterrows():
-        investigation = row.get("Investigation", "").strip()
+        investigation = str(row.get(investigation_column, "") or "").strip()
         if not investigation or investigation.upper().startswith("****"):
             continue  # skip the "**** End Of Report ***" footer row
 
-        result_raw = row.get("Result", "")
-        ref_raw = row.get("Biological Ref. Interval", "")
-        method = row.get("Method", "")
+        result_raw = str(row.get(result_column, "") or "").strip()
+        ref_raw = str(row.get(ref_column, "") or "").strip() if ref_column else ""
+        method = str(row.get(method_column, "") or "").strip() if method_column else ""
 
         result_numeric, result_unit = _parse_value(result_raw)
+        if unit_column and result_numeric is not None:
+            explicit_unit = str(row.get(unit_column, "") or "").strip()
+            if explicit_unit:
+                result_unit = explicit_unit
         ref_low, ref_high = _parse_range(ref_raw)
 
         rows.append({
@@ -160,6 +209,9 @@ def insert_lab_results(report_id, lab_df):
 
     if rows:
         supabase.table("lab_results").insert(rows).execute()
+        print(f"[Labs] Inserted {len(rows)} lab rows for report {report_id}")
+    else:
+        print(f"[Labs] No usable lab rows found for report {report_id}")
 
 
 def _parse_value(s):
@@ -336,6 +388,10 @@ def get_lab_trend(patient_id, analytes, date_from=None, date_to=None):
     two rows can share the same unit and still disagree on what counts as
     normal.
     """
+    if analytes is None:
+        all_rows = get_lab_values(patient_id, date_from=date_from, date_to=date_to)
+        analytes = sorted({r["investigation"] for r in all_rows if r.get("investigation")})
+
     trends = {}
     for analyte in analytes:
         rows = get_lab_values(patient_id, investigation=analyte, date_from=date_from, date_to=date_to)

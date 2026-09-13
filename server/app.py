@@ -218,6 +218,19 @@ def get_document_status(document_id: str) -> dict[str, Any]:
     return {"id": document_id, "status": record.get("status", "processed"), "error": record.get("error")}
 
 
+@app.get("/api/lab-trends")
+def get_lab_trends(
+    analytes: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
+    patient_id = _patient_id()
+    from db import get_lab_trend
+
+    analyte_list = [a.strip() for a in analytes.split(",")] if analytes else None
+    return get_lab_trend(patient_id, analyte_list, date_from, date_to)
+
+
 @app.post("/api/documents/{document_id}/summary/retry")
 def retry_summary(document_id: str) -> dict[str, Any]:
     patient_id = _patient_id()

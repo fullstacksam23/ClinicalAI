@@ -894,3 +894,38 @@ textarea:focus-visible{
 
   .sidebar-foot{display:block}
 }
+
+/* =========================================================
+   LAB TRENDS
+   ========================================================= */
+
+.trend-panel {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-wrapper {
+  flex: 1;
+  position: relative;
+  height: 280px;
+  min-height: 200px;
+}
+
+.trend-warning {
+  margin-bottom: 16px;
+}
+
+.trend-summary {
+  margin-top: 8px;
+}
+
+.trend-summary .detail-list div {
+  padding-bottom: 6px;
+}
+
+@media(max-width:800px){
+  .chart-wrapper {
+    height: 220px;
+  }
+}

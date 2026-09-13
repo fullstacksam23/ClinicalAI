@@ -1,6 +1,7 @@
 from paddleocr import PaddleOCRClient, Model
 from dotenv import load_dotenv
 import os
+import re
 import time
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -107,42 +108,68 @@ def process_ocr_result(result):
     - lab_df: DataFrame of the lab table, if one exists (else empty)
     - clean_text: leftover prose text, for NER/RAG chunking
     """
-    page = result.pages[0]  # TODO: loop over result.pages for multi-page docs
-    blocks = page.pruned_result['parsing_res_list']
-
     blocks_by_label = {}
     text_blocks = []
-    table_html = None
+    table_htmls = []
 
-    for block in blocks:
-        label = block['block_label']
-        content = (block.get('block_content') or '').strip()
-        if not content or label in NOISE_LABELS:
-            continue
+    for page in getattr(result, 'pages', []) or []:
+        blocks = page.pruned_result.get('parsing_res_list', [])
 
-        if label == 'table':
-            table_html = content
-            continue
+        for block in blocks:
+            label = block.get('block_label')
+            content = (block.get('block_content') or '').strip()
+            if not content or label in NOISE_LABELS:
+                continue
 
-        blocks_by_label.setdefault(label, []).append(content)
+            if label == 'table':
+                table_htmls.append(content)
+                continue
 
-        # 'text' blocks still feed clean_text for NER/RAG, same as before —
-        # only the metadata parsing (regex) is removed, not the text routing.
-        if label == 'text':
-            for line in content.split('\n'):
-                if line.strip():
-                    text_blocks.append(line.strip())
+            blocks_by_label.setdefault(label, []).append(content)
 
-    lab_df = pd.DataFrame()
-    if table_html:
+            # 'text' blocks still feed clean_text for NER/RAG, same as before —
+            # only the metadata parsing (regex) is removed, not the text routing.
+            if label == 'text':
+                text_blocks.extend(
+                    line.strip()
+                    for line in content.splitlines()
+                    if line.strip()
+                )
+
+    lab_frames = []
+    for table_html in table_htmls:
         soup = BeautifulSoup(table_html, 'html.parser')
-        rows = [[td.get_text(strip=True) for td in tr.find_all('td')]
+        rows = [[cell.get_text(' ', strip=True)
+                 for cell in tr.find_all(['th', 'td'])]
                 for tr in soup.find_all('tr')]
         rows = [r for r in rows if r]
         if rows:
             header, data_rows = rows[0], rows[1:]
+
+            # Some OCR tables have no header row. In that case Paddle returns
+            # the first measurement (for example, NEUTROPHILS / 79 % / 40 -
+            # 75 %) as the apparent header, which previously caused the
+            # entire table to be rejected by insert_lab_results().
+            if (
+                len(header) >= 3
+                and re.search(r'\d', header[1])
+                and re.search(r'\d', header[2])
+                and not any(
+                    keyword in ' '.join(header).lower()
+                    for keyword in ('investigation', 'test', 'parameter', 'result', 'reference')
+                )
+            ):
+                data_rows = [header, *data_rows]
+                header = ['Investigation', 'Result', 'Biological Ref. Interval']
+
             data_rows = [r for r in data_rows if len(r) == len(header)]
-            lab_df = pd.DataFrame(data_rows, columns=header)
+            if data_rows:
+                lab_frames.append(pd.DataFrame(data_rows, columns=header))
+
+    lab_df = (
+        pd.concat(lab_frames, ignore_index=True)
+        if lab_frames else pd.DataFrame()
+    )
 
     clean_text = '\n'.join(text_blocks)
     return blocks_by_label, lab_df, clean_text

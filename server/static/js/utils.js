@@ -1,5 +1,15 @@
 export const api = async (path, options = {}) => {
-  const r = await fetch('/api' + path, options);
+  const { query, ...fetchOptions } = options;
+  const queryString = query
+    ? new URLSearchParams(
+        Object.entries(query).filter(([, value]) => value !== null && value !== undefined && value !== '')
+      ).toString()
+    : '';
+  const requestPath = queryString
+    ? `${path}${path.includes('?') ? '&' : '?'}${queryString}`
+    : path;
+
+  const r = await fetch('/api' + requestPath, fetchOptions);
 
   if (!r.ok) {
     let d = {};

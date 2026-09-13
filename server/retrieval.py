@@ -150,6 +150,23 @@ For vector retrieval:
 - search_query should be the user's semantic question, rewritten only to be
   retrieval-friendly without changing its meaning.
 
+ANALYTE SYNONYM EXPANSION:
+When the user asks about a lab analyte (e.g., "hemoglobin"), include common
+abbreviations and synonyms in the analytes array so the substring search
+captures all variants. Examples:
+- "hemoglobin" → ["hemoglobin", "hgb", "hb"]
+- "hematocrit" → ["hematocrit", "hct"]
+- "white blood cell" / "wbc" → ["white blood cell", "wbc", "leukocyte"]
+- "red blood cell" / "rbc" → ["red blood cell", "rbc", "erythrocyte"]
+- "platelet" → ["platelet", "plt", "thrombocyte"]
+- "sodium" → ["sodium", "na"]
+- "potassium" → ["potassium", "k"]
+- "creatinine" → ["creatinine", "cr"]
+- "glucose" → ["glucose", "glu"]
+- "hba1c" → ["hba1c", "hb a1c", "hemoglobin a1c", "glycated hemoglobin"]
+Include the full name AND common abbreviations. The database search uses
+ILIKE substring matching on the investigation field.
+
 Dates should use ISO YYYY-MM-DD when present.
 Do not make up dates or analytes.
 """.strip()

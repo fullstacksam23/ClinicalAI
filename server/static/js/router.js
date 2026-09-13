@@ -8,19 +8,16 @@ import {
 
 import { health } from './health.js';
 import { chat } from './chat.js';
+import { trends, cleanupTrends } from './trends.js';
 
 import {
   renderSidebarChats
 } from './sidebar.js';
 
 export function route() {
-  const [
-    page,
-    rawId
-  ] =
-    location.hash
-      .slice(1)
-      .split('/');
+  const hash = location.hash.slice(1);
+  const [page, ...rest] = hash.split('/');
+  const rawId = rest.join('/');
 
   const id =
     rawId
@@ -57,7 +54,12 @@ export function route() {
     return chat(id);
   }
 
+  if (page === 'trends') {
+    return trends();
+  }
+
   cleanupPdfBlob();
+  cleanupTrends();
 
   return (
     {
