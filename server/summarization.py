@@ -12,7 +12,7 @@ from google.genai import types
 
 load_dotenv()
 
-SUMMARY_MODEL = os.getenv("CLINICAL_SUMMARY_MODEL")
+SUMMARY_MODEL = os.getenv("CLINICAL_SUMMARY_MODEL", "gemini-3.5-flash-lite")
 MAX_OCR_CHARS = 12000
 MAX_SUMMARY_WORDS = 100
 

@@ -131,12 +131,6 @@ def extract_fields_with_llm(input_text: str) -> dict:
         "Never guess or infer information that is not supported by the text."
     )
 
-    system_prompt = (
-        "Extract structured identifying fields from a clinical report. "
-        "Use null when a field is not clearly present. "
-        "Never guess or infer information that is not supported by the text."
-    )
-
     chat = client.chats.create(
         model=os.getenv(
             "CLINICAL_METADATA_MODEL",

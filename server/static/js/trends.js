@@ -40,6 +40,14 @@ function analyteSelectOptions(analytes) {
   return allAnalytes.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
 }
 
+function analytePills(analytes) {
+  return Array.from(new Set(analytes)).sort().map(analyte => `
+    <button type="button" class="button ghost analyte-pill" data-analyte="${esc(analyte)}" aria-pressed="false">
+      ${esc(analyte)}
+    </button>
+  `).join('');
+}
+
 function renderTrendSummary(analyte, data) {
   const s = data.summary;
   if (!s) return '';
@@ -84,8 +92,12 @@ function createChart(analyte, data) {
   ];
 
   if (hasRefRange) {
-    const avgLow = data.series.filter(p => p.ref_low !== null).reduce((a, b) => a + b.ref_low, 0) / data.series.filter(p => p.ref_low !== null).length || null;
-    const avgHigh = data.series.filter(p => p.ref_high !== null).reduce((a, b) => a + b.ref_high, 0) / data.series.filter(p => p.ref_high !== null).length || null;
+    const lowValues = data.series.filter(p => Number.isFinite(p.ref_low)).map(p => p.ref_low);
+    const highValues = data.series.filter(p => Number.isFinite(p.ref_high)).map(p => p.ref_high);
+    const lowAverage = lowValues.length ? lowValues.reduce((sum, value) => sum + value, 0) / lowValues.length : null;
+    const highAverage = highValues.length ? highValues.reduce((sum, value) => sum + value, 0) / highValues.length : null;
+    const avgLow = Number.isFinite(lowAverage) ? lowAverage : null;
+    const avgHigh = Number.isFinite(highAverage) ? highAverage : null;
     if (avgLow !== null || avgHigh !== null) {
       datasets.push(
         {
@@ -191,6 +203,7 @@ export async function trends() {
       <div class="toolbar" id="trends-toolbar" style="flex-wrap: wrap; gap: 12px; margin-bottom: 16px; display: ${hasExplicitParams ? 'flex' : 'none'};">
         <select id="analyte-select" multiple class="search" style="flex: 1; min-width: 200px; height: auto; padding: 8px;">
         </select>
+        <div id="analyte-pills" style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%;"></div>
         <input type="date" id="date-from" class="search" style="width: 160px;" placeholder="From">
         <input type="date" id="date-to" class="search" style="width: 160px;" placeholder="To">
         <button class="button" id="load-trends" type="button">Load trends</button>
@@ -207,6 +220,7 @@ export async function trends() {
   `;
 
   const selectEl = document.getElementById('analyte-select');
+  const pillsEl = document.getElementById('analyte-pills');
   const dateFromEl = document.getElementById('date-from');
   const dateToEl = document.getElementById('date-to');
   const loadBtn = document.getElementById('load-trends');
@@ -223,12 +237,33 @@ export async function trends() {
     const allTrends = await api('/lab-trends');
     const allAnalytes = Object.keys(allTrends);
     selectEl.innerHTML = analyteSelectOptions(allAnalytes);
+    pillsEl.innerHTML = analytePills(allAnalytes);
+
+    const syncPills = () => {
+      const selected = new Set(Array.from(selectEl.selectedOptions).map(option => option.value));
+      pillsEl.querySelectorAll('[data-analyte]').forEach(pill => {
+        const isSelected = selected.has(pill.dataset.analyte);
+        pill.classList.toggle('active', isSelected);
+        pill.setAttribute('aria-pressed', String(isSelected));
+      });
+    };
+
+    pillsEl.onclick = event => {
+      const pill = event.target.closest('[data-analyte]');
+      if (!pill) return;
+      const option = Array.from(selectEl.options).find(item => item.value === pill.dataset.analyte);
+      if (!option) return;
+      option.selected = !option.selected;
+      syncPills();
+    };
+    selectEl.onchange = syncPills;
 
     if (analyteParam) {
       const selected = analyteParam.split(',');
       Array.from(selectEl.options).forEach(opt => {
         opt.selected = selected.includes(opt.value);
       });
+      syncPills();
       await loadAndRender(analyteParam, dateFromParam, dateToParam);
     } else {
       // Show default trends: top 5 analytes with most data points
@@ -240,6 +275,10 @@ export async function trends() {
         .map(a => a.name);
       
       if (analytesByCount.length) {
+        Array.from(selectEl.options).forEach(opt => {
+          opt.selected = analytesByCount.includes(opt.value);
+        });
+        syncPills();
         await loadAndRender(analytesByCount.join(','), null, null);
       } else {
         emptyEl.style.display = 'block';

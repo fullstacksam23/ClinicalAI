@@ -439,6 +439,208 @@ textarea:focus-visible{
 
 .summary-retry{margin-top:8px}
 
+.export-panel{margin-bottom:22px}
+
+.export-panel h3{margin:0}
+
+.export-date-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:18px
+}
+
+.export-date-grid label,
+.export-label{
+  display:grid;
+  gap:5px;
+  color:var(--muted);
+  font-size:12px
+}
+
+.export-question-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:8px 0
+}
+
+.export-question-row .search{flex:1;min-width:0}
+
+.export-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:18px
+}
+
+.button:disabled{cursor:wait;opacity:.65}
+
+/* ---------------------------------------------------------
+   HEALTH TIMELINE
+   --------------------------------------------------------- */
+
+.timeline-filters{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:28px
+}
+
+.timeline-type-filters{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap
+}
+
+.timeline-filter{
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:white;
+  color:var(--muted);
+  padding:8px 13px;
+  font:600 13px 'DM Sans';
+  cursor:pointer
+}
+
+.timeline-filter:hover,
+.timeline-filter.active{
+  border-color:#a8cfc4;
+  background:#e7f3ef;
+  color:var(--deep)
+}
+
+.timeline-date-filters{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  flex-wrap:wrap
+}
+
+.timeline-date-filters label{
+  display:grid;
+  gap:4px;
+  color:var(--muted);
+  font-size:11px
+}
+
+.timeline-date-filters .search{width:145px}
+
+.timeline-month h2{
+  color:var(--deep);
+  font:600 23px Newsreader,serif;
+  margin:26px 0 14px
+}
+
+.timeline-list{
+  position:relative;
+  display:grid;
+  gap:18px;
+  padding-left:20px
+}
+
+.timeline-list::before{
+  content:'';
+  position:absolute;
+  top:8px;
+  bottom:8px;
+  left:4px;
+  width:1px;
+  background:var(--line)
+}
+
+.timeline-event{
+  position:relative;
+  display:grid;
+  grid-template-columns:110px minmax(0,1fr);
+  gap:16px;
+  align-items:start
+}
+
+.timeline-marker{
+  position:absolute;
+  z-index:1;
+  top:18px;
+  left:-20px;
+  width:9px;
+  height:9px;
+  border:2px solid white;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 1px var(--green)
+}
+
+.timeline-marker.abnormal{
+  background:var(--red);
+  box-shadow:0 0 0 1px var(--red)
+}
+
+.timeline-event-date{
+  padding-top:17px;
+  color:var(--muted);
+  font-size:13px
+}
+
+.timeline-event-card{padding:18px 20px}
+
+.timeline-event-card h3{
+  margin:3px 0 7px;
+  font:600 19px Newsreader,serif
+}
+
+.timeline-event-type{
+  color:var(--green);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase
+}
+
+.timeline-subtitle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:0 0 11px;
+  color:var(--muted);
+  font-size:13px
+}
+
+.timeline-status{
+  border-left:1px solid var(--line);
+  padding-left:10px
+}
+
+.timeline-direction{
+  border-radius:20px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase
+}
+
+.timeline-direction.high{background:#fbe9e8;color:var(--red)}
+.timeline-direction.low{background:#fff2dc;color:#95621b}
+
+.timeline-empty{margin-top:20px}
+
+@media(max-width:800px){
+  .timeline-filters,
+  .timeline-date-filters{align-items:stretch}
+
+  .timeline-date-filters .search{width:100%}
+
+  .timeline-date-filters label,
+  .timeline-date-filters button{flex:1}
+
+  .timeline-event{grid-template-columns:1fr;gap:4px}
+
+  .timeline-event-date{padding-top:0}
+
+  .timeline-event-card{padding:16px}
+}
+
 /* ---------------------------------------------------------
    CHAT
    --------------------------------------------------------- */
@@ -861,6 +1063,12 @@ textarea:focus-visible{
   }
 
   .intro h2{font-size:31px}
+
+  .export-date-grid{grid-template-columns:1fr}
+
+  .export-question-row{align-items:stretch;flex-direction:column}
+
+  .export-question-row .link-button{align-self:flex-start}
 
   .grid,
   .viewer{grid-template-columns:1fr}

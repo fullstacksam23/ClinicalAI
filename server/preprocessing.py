@@ -1,15 +1,13 @@
 from paddleocr import PaddleOCRClient, Model
 from dotenv import load_dotenv
 import os
-import re
 import time
-import pandas as pd
-from bs4 import BeautifulSoup
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 from embedding import embed_report, embed_lab_results
 from metadata import extract_report_fields
 from db import save_report
-from paddleocr._api_client.errors import InvalidRequestError
+from lab_normalization import normalize_tables
+from paddleocr._api_client.errors import InvalidRequestError, NetworkError
 
 load_dotenv()
 
@@ -22,7 +20,7 @@ NER_MIN_SCORE = 0.75  # drop low-confidence junk like "05 /" at conf=0.474
 # the extractor needs them (that's where doctor name, dates, IDs usually
 # live). Only header_image/footer_image (pure images, no text) and footer
 # (hospital branding boilerplate) are pure noise now.
-NOISE_LABELS = {'header_image', 'footer_image', 'footer'}
+NOISE_LABELS = {'header_image', 'footer_image', 'footer', 'image', 'images'}
 
 # Load once at import time, not on every call — avoids re-downloading/
 # re-initializing the model per document.
@@ -44,6 +42,8 @@ _ocr_client = PaddleOCRClient(
 def ProcessFile(file_path, patient_id=None):
     max_retries = 20
     retry_delay = 5
+    network_retries = 3
+    network_attempts = 0
 
     for attempt in range(max_retries):
         try:
@@ -60,6 +60,21 @@ def ProcessFile(file_path, patient_id=None):
             print("[PaddleOCR] Successfully processed document.")
             break
 
+        except NetworkError as exc:
+            network_attempts += 1
+            if network_attempts >= network_retries:
+                raise RuntimeError(
+                    "PaddleOCR is unreachable. Check internet/DNS access or "
+                    "configure PADDLEOCR_BASE_URL before retrying."
+                ) from exc
+
+            wait = retry_delay * network_attempts
+            print(
+                f"[PaddleOCR] Network failure. "
+                f"Waiting {wait}s before retrying ({network_attempts}/{network_retries - 1})..."
+            )
+            time.sleep(wait)
+
         except InvalidRequestError as exc:
             error = str(exc)
 
@@ -75,8 +90,8 @@ def ProcessFile(file_path, patient_id=None):
             )
 
             time.sleep(retry_delay)
+
     blocks_by_label, lab_df, clean_text = process_ocr_result(result)
-    _ocr_client.close()
 
     if not lab_df.empty:
         print("Lab table found:")
@@ -136,39 +151,16 @@ def process_ocr_result(result):
                     if line.strip()
                 )
 
-    lab_frames = []
-    for table_html in table_htmls:
-        soup = BeautifulSoup(table_html, 'html.parser')
-        rows = [[cell.get_text(' ', strip=True)
-                 for cell in tr.find_all(['th', 'td'])]
-                for tr in soup.find_all('tr')]
-        rows = [r for r in rows if r]
-        if rows:
-            header, data_rows = rows[0], rows[1:]
-
-            # Some OCR tables have no header row. In that case Paddle returns
-            # the first measurement (for example, NEUTROPHILS / 79 % / 40 -
-            # 75 %) as the apparent header, which previously caused the
-            # entire table to be rejected by insert_lab_results().
-            if (
-                len(header) >= 3
-                and re.search(r'\d', header[1])
-                and re.search(r'\d', header[2])
-                and not any(
-                    keyword in ' '.join(header).lower()
-                    for keyword in ('investigation', 'test', 'parameter', 'result', 'reference')
-                )
-            ):
-                data_rows = [header, *data_rows]
-                header = ['Investigation', 'Result', 'Biological Ref. Interval']
-
-            data_rows = [r for r in data_rows if len(r) == len(header)]
-            if data_rows:
-                lab_frames.append(pd.DataFrame(data_rows, columns=header))
-
-    lab_df = (
-        pd.concat(lab_frames, ignore_index=True)
-        if lab_frames else pd.DataFrame()
+    lab_df, extraction_stats = normalize_tables(table_htmls)
+    print(
+        "[Tables] "
+        f"seen={extraction_stats['tables_seen']} "
+        f"lab={extraction_stats['lab_tables']} "
+        f"non_lab={extraction_stats['non_lab_tables']} "
+        f"parsed={extraction_stats['rows_parsed']} "
+        f"skipped={extraction_stats['rows_skipped']} "
+        f"unparsed={extraction_stats['rows_unparsed']} "
+        f"unknown_headers={extraction_stats['unknown_header_tables']}"
     )
 
     clean_text = '\n'.join(text_blocks)
@@ -197,27 +189,3 @@ def named_entity_recognition(text, min_score=NER_MIN_SCORE):
         print(f"{e['entity_group']:15} | {e['text']:25} | conf={e['score']}")
 
     return entities
-
-
-# if __name__ == "__main__":
-#     fields, lab_df, clean_text, entities = ProcessFile("./pdfs/hematology1.pdf")
-#     report_id, patient_id = save_report(fields, lab_df, clean_text)
-
-#     embed_report(
-#         report_id=str(report_id),
-#         patient_id=str(patient_id),
-#         clean_text=clean_text,
-#         fields=fields,
-#         entities=entities,
-#     )
-
-#     # Companion step — synthesizes prose sentences from the lab table and
-#     # embeds those too, so lab VALUES become semantically searchable
-#     # (previously only report prose was). No-ops cleanly if lab_df is
-#     # empty (e.g. this radiology report has no lab table).
-#     embed_lab_results(
-#         report_id=str(report_id),
-#         lab_df=lab_df,
-#         fields=fields,
-#         patient_id=str(patient_id),
-#     )

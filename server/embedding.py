@@ -2,10 +2,11 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, MatchAny, Range
+import re
 import uuid
 from datetime import datetime
+import pandas as pd
 
-from db import _parse_value, _parse_range
 
 QDRANT_URL = "http://localhost:6333"
 COLLECTION_NAME = "clinical_reports"
@@ -37,11 +38,19 @@ article_model = AutoModel.from_pretrained(ARTICLE_MODEL_NAME).to(device).eval()
 
 qdrant_client = QdrantClient(url=QDRANT_URL)
 
-if not qdrant_client.collection_exists(COLLECTION_NAME):
-    qdrant_client.create_collection(
-        collection_name=COLLECTION_NAME,
-        vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
-    )
+
+def _init_qdrant_collection():
+    try:
+        if not qdrant_client.collection_exists(COLLECTION_NAME):
+            qdrant_client.create_collection(
+                collection_name=COLLECTION_NAME,
+                vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+            )
+    except Exception as exc:
+        print(f"[Qdrant] Warning: collection check could not connect ({exc}). Will retry on operation.")
+
+
+_init_qdrant_collection()
 
 
 def embed_documents(texts):
@@ -189,9 +198,11 @@ def embed_lab_results(report_id, lab_df, fields, patient_id=None):
     row_meta = []
 
     for _, row in lab_df.iterrows():
-        investigation = row.get("Investigation", "").strip()
-        result_raw = row.get("Result", "")
-        ref_raw = row.get("Biological Ref. Interval", "")
+        if row.get("row_status") != "parsed":
+            continue
+        investigation = "" if pd.isna(row.get("investigation")) else str(row.get("investigation") or "").strip()
+        result_raw = "" if pd.isna(row.get("result_value")) else str(row.get("result_value") or "").strip()
+        ref_raw = "" if pd.isna(row.get("ref_interval_raw")) else str(row.get("ref_interval_raw") or "").strip()
 
         # Skip the same rows insert_lab_results skips (footer row), PLUS
         # rows with no actual result value (e.g. a section-header row like
@@ -199,11 +210,13 @@ def embed_lab_results(report_id, lab_df, fields, patient_id=None):
         # not a real measurement, nothing meaningful to embed).
         if not investigation or investigation.upper().startswith("****"):
             continue
-        if not str(result_raw).strip():
+        if not result_raw:
             continue
 
-        result_numeric, result_unit = _parse_value(result_raw)
-        ref_low, ref_high = _parse_range(ref_raw)
+        result_numeric = None if pd.isna(row.get("result_numeric")) else row.get("result_numeric")
+        result_unit = "" if pd.isna(row.get("result_unit")) else str(row.get("result_unit") or "").strip()
+        ref_low = None if pd.isna(row.get("ref_low")) else row.get("ref_low")
+        ref_high = None if pd.isna(row.get("ref_high")) else row.get("ref_high")
 
         sentence = _synthesize_lab_sentence(
             investigation, result_raw, result_unit, ref_low, ref_high, report_date_value
@@ -301,13 +314,3 @@ def delete_report_vectors(report_id):
         points_selector=Filter(must=[condition]),
         wait=True,
     )
-
-
-# --- usage ---
-# fields, lab_df, clean_text, entities = ProcessFile("rad1.pdf")
-# embed_report(report_id="rad1", clean_text=clean_text, fields=fields, entities=entities)
-#
-# retriever = PatientScopedRetriever(patient_id="prototype_patient")
-# results = retriever.search("did my chest x-ray show any lung problems?")
-# for r in results:
-#     print(r.score, r.payload["chunk_text"][:200])

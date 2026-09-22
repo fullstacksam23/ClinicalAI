@@ -20,8 +20,18 @@ import {
 } from './documents.js';
 
 import {
-  deleteChat
+  deleteChat,
+  newChat
 } from './chat.js';
+
+import { setTimelineType } from './timeline.js';
+import {
+  openDoctorExport,
+  closeDoctorExport,
+  addDoctorQuestion,
+  removeDoctorQuestion,
+  submitDoctorExport
+} from './exports.js';
 
 export function initGlobalHandlers() {
 
@@ -29,19 +39,38 @@ export function initGlobalHandlers() {
     'click',
     e => {
 
-      const newChat =
+      const newChatButton =
         e.target.closest(
           '#new-chat'
         );
 
-      if (newChat) {
+      if (newChatButton) {
+        newChat();
 
-        state.currentConversationId =
-          null;
+        return;
+      }
 
-        location.hash =
-          '#chat';
+      const timelineType = e.target.closest('[data-timeline-type]');
+      if (timelineType) {
+        setTimelineType(timelineType.dataset.timelineType);
+        return;
+      }
 
+      if (e.target.closest('[data-export-doctor]')) {
+        openDoctorExport();
+        return;
+      }
+      if (e.target.closest('[data-export-close]')) {
+        closeDoctorExport();
+        return;
+      }
+      if (e.target.closest('[data-export-add-question]')) {
+        addDoctorQuestion();
+        return;
+      }
+      const removeQuestion = e.target.closest('[data-export-remove-question]');
+      if (removeQuestion) {
+        removeDoctorQuestion(removeQuestion);
         return;
       }
 
@@ -218,4 +247,10 @@ export function initGlobalHandlers() {
 
     }
   );
+
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'doctor-export-form') return;
+    e.preventDefault();
+    submitDoctorExport(e.target);
+  });
 }

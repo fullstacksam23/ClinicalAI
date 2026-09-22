@@ -12,14 +12,7 @@ import {
   cleanupPdfBlob
 } from './pdf.js';
 
-import {
-  loadDocs,
-  docRows
-} from './documents.js';
-
 export function health() {
-  cleanupPdfBlob();
-
   title.textContent =
     'Health record';
 
@@ -40,7 +33,16 @@ export function health() {
 
       </div>
 
+      <button
+        class="button"
+        type="button"
+        data-export-doctor>
+        Export for doctor
+      </button>
+
     </div>
+
+    <div id="doctor-export-root"></div>
 
     <div class="card">
 
@@ -55,8 +57,8 @@ export function health() {
     </div>
   `;
 
-  loadDocs()
-    .then(async docs => {
+  api('/lab-results')
+    .then(labs => {
 
       const healthList =
         document.querySelector(
@@ -65,42 +67,6 @@ export function health() {
 
       if (!healthList)
         return;
-
-      if (!docs.length) {
-        healthList.innerHTML =
-          docRows([]);
-
-        return;
-      }
-
-      const details =
-        await Promise.all(
-          docs
-            .filter(
-              x =>
-                x.status ===
-                'processed'
-            )
-            .slice(0, 12)
-            .map(
-              x =>
-                api(
-                  '/documents/' +
-                    encodeURIComponent(
-                      x.id
-                    )
-                ).catch(
-                  () => null
-                )
-            )
-        );
-
-      const labs =
-        details.flatMap(
-          x =>
-            x?.lab_results ||
-            []
-        );
 
       healthList.innerHTML =
         labs.length

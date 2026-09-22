@@ -167,6 +167,14 @@ export async function chat(
 
   input.value = '';
 
+  const resizeInput = () => {
+    input.style.height = 'auto';
+    input.style.height = `${input.scrollHeight}px`;
+  };
+
+  input.oninput = resizeInput;
+  resizeInput();
+
   input.onkeydown = e => {
     if (
       e.key === 'Enter' &&
@@ -216,6 +224,7 @@ export async function chat(
     );
 
     input.value = '';
+    resizeInput();
 
     messages.scrollTop =
       messages.scrollHeight;
@@ -322,6 +331,11 @@ export async function chat(
 export function newChat() {
   state.currentConversationId =
     null;
+
+  if (location.hash === '#chat') {
+    chat();
+    return;
+  }
 
   location.hash =
     '#chat';

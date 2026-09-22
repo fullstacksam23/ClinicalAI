@@ -15,8 +15,11 @@ import os
 import re
 import uuid
 from datetime import datetime, timezone
+import pandas as pd
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from lab_normalization import _parse_range as _normalize_range
+from lab_normalization import _parse_value as _normalize_value
 
 load_dotenv()
 
@@ -73,7 +76,7 @@ def get_or_create_patient(patient_name, external_patient_id=None):
 
 
 def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
-                   pipeline_version="v1"):
+                   pipeline_version="v1", extraction_stats=None):
     """
     fields: a ReportFields object from metadata_extraction.extract_report_fields()
     patient_id: already-resolved patient UUID (from get_or_create_patient) —
@@ -81,12 +84,18 @@ def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
     (save_report) that owns "who is this report for".
     Returns the new report's UUID (as a string).
     """
-    any_flagged = any(f.flagged_for_review for f in fields.__dict__.values())
+    extraction_stats = extraction_stats or {}
+    any_flagged = (
+        any(f.flagged_for_review for f in fields.__dict__.values())
+        or bool(extraction_stats.get("review_required"))
+    )
 
     extra_metadata = {
         name: f.value for name, f in fields.__dict__.items()
         if name not in PROMOTED_REPORT_FIELDS
     }
+    if extraction_stats:
+        extra_metadata["ocr_table_extraction"] = extraction_stats
 
     report_date = (
         fields.report_date.value
@@ -140,60 +149,22 @@ def insert_lab_results(report_id, lab_df):
     if lab_df is None or lab_df.empty:
         return
 
-    def normalized(name):
-        return re.sub(r'[^a-z0-9]+', '', str(name).lower())
-
-    def column_for(*names):
-        wanted = {normalized(name) for name in names}
-        return next(
-            (column for column in lab_df.columns if normalized(column) in wanted),
-            None,
-        )
-
-    investigation_column = column_for(
-        "Investigation", "Test", "Test Name", "Parameter", "Analyte",
-        "Exam", "Description",
-    )
-    result_column = column_for(
-        "Result", "Value", "Observed Value", "Measured Value", "Result Value",
-        "Findings",
-    )
-    unit_column = column_for("Unit", "Units", "Result Unit")
-    ref_column = column_for(
-        "Biological Ref. Interval", "Reference Range", "Reference Interval",
-        "Normal Range", "Ref. Range", "Range",
-    )
-    method_column = column_for("Method", "Technique")
-
-    if not investigation_column or not result_column:
-        print(
-            f"[Labs] Skipping report {report_id}: could not identify lab columns. "
-            f"Found columns: {list(lab_df.columns)!r}"
-        )
-        return
-
-    print(
-        f"[Labs] Saving {len(lab_df)} rows for report {report_id} "
-        f"using columns: investigation={investigation_column!r}, "
-        f"result={result_column!r}"
-    )
+    print(f"[Labs] Saving canonical rows for report {report_id}")
 
     rows = []
     for _, row in lab_df.iterrows():
-        investigation = str(row.get(investigation_column, "") or "").strip()
-        if not investigation or investigation.upper().startswith("****"):
-            continue  # skip the "**** End Of Report ***" footer row
-
-        result_raw = str(row.get(result_column, "") or "").strip()
-        ref_raw = str(row.get(ref_column, "") or "").strip() if ref_column else ""
-        method = str(row.get(method_column, "") or "").strip() if method_column else ""
-
-        result_numeric, result_unit = _parse_value(result_raw)
-        if unit_column and result_numeric is not None:
-            explicit_unit = str(row.get(unit_column, "") or "").strip()
-            if explicit_unit:
-                result_unit = explicit_unit
-        ref_low, ref_high = _parse_range(ref_raw)
+        if row.get("row_status") != "parsed":
+            continue
+        investigation = "" if pd.isna(row.get("investigation")) else str(row.get("investigation") or "").strip()
+        result_raw = "" if pd.isna(row.get("result_value")) else str(row.get("result_value") or "").strip()
+        ref_raw = "" if pd.isna(row.get("ref_interval_raw")) else str(row.get("ref_interval_raw") or "").strip()
+        method = "" if pd.isna(row.get("method")) else str(row.get("method") or "").strip()
+        result_numeric = None if pd.isna(row.get("result_numeric")) else row.get("result_numeric")
+        result_unit = "" if pd.isna(row.get("result_unit")) else str(row.get("result_unit") or "").strip()
+        ref_low = None if pd.isna(row.get("ref_low")) else row.get("ref_low")
+        ref_high = None if pd.isna(row.get("ref_high")) else row.get("ref_high")
+        if not investigation or investigation.upper().startswith("****") or not result_raw:
+            continue
 
         rows.append({
             "report_id": report_id,
@@ -215,37 +186,11 @@ def insert_lab_results(report_id, lab_df):
 
 
 def _parse_value(s):
-    if not s:
-        return None, None
-    m = re.match(r'\s*([-+]?\d*\.?\d+)\s*(\S+)?', str(s))
-    if not m:
-        return None, None
-    return float(m.group(1)), m.group(2)
+    return _normalize_value(s)
 
 
 def _parse_range(s):
-    s = str(s or "").strip()
-    if not s:
-        return None, None
-    if '<' in s:
-        m = re.search(r'[-+]?\d*\.?\d+', s)
-        return None, float(m.group()) if m else None
-    if '>' in s:
-        m = re.search(r'[-+]?\d*\.?\d+', s)
-        return float(m.group()) if m else None, None
-    # Explicit "NUM - NUM" pattern first, treating the separating dash as
-    # a hyphen rather than a negative sign. Reference ranges are never
-    # legitimately negative, so this is a safe assumption — without it,
-    # an unspaced range like "136-145" gets misparsed by the generic
-    # number-extraction fallback below into (136.0, -145.0), since the
-    # dash directly touching "145" looks like a sign to a bare regex scan.
-    m = re.match(r'\s*(\d*\.?\d+)\s*-\s*(\d*\.?\d+)\s*', s)
-    if m:
-        return float(m.group(1)), float(m.group(2))
-    nums = re.findall(r'[-+]?\d*\.?\d+', s)
-    if len(nums) == 2:
-        return float(nums[0]), float(nums[1])
-    return None, None
+    return _normalize_range(s)
 
 
 def save_report(fields, lab_df, clean_text, raw_ocr_job_id=None, external_patient_id=None):
@@ -264,10 +209,12 @@ def save_report(fields, lab_df, clean_text, raw_ocr_job_id=None, external_patien
     patient_id = get_or_create_patient(
         fields.patient_name.value, external_patient_id=external_patient_id
     )
+    extraction_stats = getattr(lab_df, "attrs", {}).get("extraction_stats", {}) if lab_df is not None else {}
     report_id = insert_report(
         fields, clean_text,
         patient_id=patient_id,
         raw_ocr_job_id=raw_ocr_job_id,
+        extraction_stats=extraction_stats,
     )
     insert_lab_results(report_id, lab_df)
     return report_id, patient_id
@@ -470,7 +417,7 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     """
     query = (
         supabase.table("reports")
-        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review, summary, summary_status")
+        .select("id, report_type, report_date, referring_doctor, patient_age_at_report, patient_sex, metadata_flagged_for_review, extra_metadata, summary, summary_status")
         .eq("patient_id", patient_id)
         .order("report_date", desc=True)
     )
@@ -483,6 +430,215 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     if date_to:
         query = query.lte("report_date", date_to)
     return query.execute().data
+
+
+def get_report_by_id(report_id, patient_id):
+    """Fetch a single report by ID ensuring patient-scope ownership."""
+    rows = (
+        supabase.table("reports")
+        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review, extra_metadata, summary, summary_status")
+        .eq("id", str(report_id))
+        .eq("patient_id", str(patient_id))
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def get_all_patient_labs(patient_id):
+    """
+    Fetch all laboratory results across all reports belonging to this patient,
+    ordered newest-first by report date.
+    """
+    rows = (
+        supabase.table("lab_results")
+        .select("id, report_id, investigation, result_value, result_numeric, result_unit, ref_interval_raw, ref_low, ref_high, method, reports!inner(report_date, report_type)")
+        .eq("reports.patient_id", str(patient_id))
+        .execute()
+        .data
+        or []
+    )
+    rows.sort(
+        key=lambda r: (r.get("reports") or {}).get("report_date") or "",
+        reverse=True,
+    )
+    return [
+        {
+            "id": r.get("id"),
+            "report_id": r.get("report_id"),
+            "investigation": r.get("investigation"),
+            "result_value": r.get("result_value"),
+            "result_numeric": r.get("result_numeric"),
+            "result_unit": r.get("result_unit"),
+            "ref_interval_raw": r.get("ref_interval_raw"),
+            "ref_low": r.get("ref_low"),
+            "ref_high": r.get("ref_high"),
+            "method": r.get("method"),
+            "report_date": (r.get("reports") or {}).get("report_date"),
+            "report_type": (r.get("reports") or {}).get("report_type"),
+        }
+        for r in rows
+    ]
+
+
+def get_patient_name(patient_id):
+    rows = (
+        supabase.table("patients")
+        .select("name")
+        .eq("id", str(patient_id))
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0].get("name") if rows else None
+
+
+def get_doctor_summary_data(patient_id, date_from, date_to, questions=None):
+    """Gather all patient-scoped inputs needed by the doctor-summary export."""
+    reports = get_reports_list(patient_id, date_from=date_from, date_to=date_to)
+    all_labs = get_all_patient_labs(patient_id)
+    abnormal_labs = get_abnormal_results(patient_id, date_from=date_from, date_to=date_to)
+    for row in abnormal_labs:
+        row["report_date"] = row.get("report_date") or (row.get("reports") or {}).get("report_date")
+    abnormal_labs.sort(key=lambda row: row.get("reports", {}).get("report_date") or row.get("report_date") or "", reverse=True)
+    abnormal_analytes = list(dict.fromkeys(
+        row.get("investigation") for row in abnormal_labs if row.get("investigation")
+    ))
+    trends = get_lab_trend(patient_id, abnormal_analytes, date_from=date_from, date_to=date_to)
+    trends = {
+        analyte: trend for analyte, trend in trends.items()
+        if sum(1 for point in trend.get("series", []) if point.get("value") is not None) >= 2
+    }
+    latest = reports[0] if reports else {}
+    return {
+        "patient": {
+            "patient_name": get_patient_name(patient_id),
+            **{
+                key: latest.get(key)
+                for key in ("patient_age_at_report", "patient_sex")
+                if latest.get(key) not in (None, "")
+            },
+        },
+        "reports": reports,
+        "all_labs": all_labs,
+        "abnormal_labs": abnormal_labs,
+        "trends": trends,
+        "date_from": date_from,
+        "date_to": date_to,
+        "questions": questions or [],
+    }
+
+
+def get_timeline_events(patient_id, date_from=None, date_to=None):
+    """
+    Return a flat list of timeline events for the patient, newest-first.
+
+    Event types
+    -----------
+    "report"       — one event per report (report date, type, referring doctor,
+                     summary_status).
+    "abnormal_lab" — one event per unique (report_id, investigation) pair whose
+                     result_numeric falls outside its reference range.  Derived
+                     from existing data; no new queries beyond the two already
+                     used by the rest of the module.
+
+    Parameters
+    ----------
+    patient_id : str  — server-resolved patient UUID (never from browser).
+    date_from  : str | None — ISO date lower bound (inclusive), applied to
+                              report_date for both event types.
+    date_to    : str | None — ISO date upper bound (inclusive).
+
+    Each event dict always contains:
+        id, type, date (ISO str), report_id, title, subtitle
+
+    "report" events also carry:   summary_status, referring_doctor
+    "abnormal_lab" events also carry: lab_result_id, investigation,
+        value, unit, ref_interval_raw, direction ("high"|"low")
+    """
+    # --- query 1: reports list (already sorted newest-first) ---
+    reports = get_reports_list(patient_id, date_from=date_from, date_to=date_to)
+
+    # --- query 2: all patient labs (flat, joined with report date/type) ---
+    all_labs = get_all_patient_labs(patient_id)
+
+    events = []
+
+    # Build "report" events
+    for rep in reports:
+        rep_date = rep.get("report_date") or ""
+        events.append({
+            "id": f"report-{rep['id']}",
+            "type": "report",
+            "date": rep_date,
+            "report_id": str(rep["id"]),
+            "title": rep.get("report_type") or "Medical Report",
+            "subtitle": rep.get("referring_doctor") or "",
+            "summary_status": rep.get("summary_status") or "pending",
+            "referring_doctor": rep.get("referring_doctor") or "",
+        })
+
+    # Build "abnormal_lab" events — one per unique (report_id, investigation).
+    # Keep only rows with a numeric value outside the reference range.
+    # Deduplication: if a patient had the same test twice on the same report
+    # (rare but possible from header-row duplicates), keep the first occurrence.
+    seen = set()
+    for lab in all_labs:
+        # apply date filters on report_date
+        rep_date = lab.get("report_date") or ""
+        if date_from and rep_date and rep_date < date_from:
+            continue
+        if date_to and rep_date and rep_date > date_to:
+            continue
+
+        value = lab.get("result_numeric")
+        ref_low = lab.get("ref_low")
+        ref_high = lab.get("ref_high")
+        if value is None:
+            continue
+        if ref_low is None and ref_high is None:
+            continue
+
+        is_high = ref_high is not None and value > ref_high
+        is_low = ref_low is not None and value < ref_low
+        if not is_high and not is_low:
+            continue
+
+        direction = "high" if is_high else "low"
+        investigation = lab.get("investigation") or "Unknown test"
+        dedup_key = (str(lab.get("report_id")), investigation)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+
+        unit = lab.get("result_unit") or ""
+        value_str = lab.get("result_value") or str(value)
+        ref_raw = lab.get("ref_interval_raw") or ""
+        subtitle = f"{value_str}{(' ' + unit) if unit else ''} — {direction.upper()}"
+        if ref_raw:
+            subtitle += f" (ref: {ref_raw})"
+
+        events.append({
+            "id": f"lab-{lab.get('id')}",
+            "type": "abnormal_lab",
+            "date": rep_date,
+            "report_id": str(lab.get("report_id") or ""),
+            "title": investigation,
+            "subtitle": subtitle,
+            "lab_result_id": str(lab.get("id") or ""),
+            "investigation": investigation,
+            "value": value_str,
+            "unit": unit,
+            "ref_interval_raw": ref_raw,
+            "direction": direction,
+        })
+
+    # Sort all events newest-first; secondary sort by id for stability.
+    events.sort(key=lambda e: (e["date"], e["id"]), reverse=True)
+    return events
 
 
 def get_report_summary_input(report_id, patient_id):
