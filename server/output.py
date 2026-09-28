@@ -16,7 +16,9 @@ IMPORTANT:
 from __future__ import annotations
 
 import json
+import logging
 import os
+from time import perf_counter
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Literal, Optional
 
@@ -52,6 +54,7 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not set.")
 
 _gemini = genai.Client(api_key=GEMINI_API_KEY)
+logger = logging.getLogger("clinicalai.output")
 
 
 
@@ -600,7 +603,11 @@ State clearly when the available evidence is insufficient.
                 response_schema=ClinicalAnswerModel,
             ),
         )
-        response = chat.send_message(user_prompt)
+        generation_started = perf_counter()
+        try:
+            response = chat.send_message(user_prompt)
+        finally:
+            logger.info("chat answer_generation_seconds=%.3f", perf_counter() - generation_started)
 
         parsed = getattr(response, "parsed", None)
         if isinstance(parsed, BaseModel):

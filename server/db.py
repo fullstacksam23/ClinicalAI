@@ -335,13 +335,23 @@ def get_lab_trend(patient_id, analytes, date_from=None, date_to=None):
     two rows can share the same unit and still disagree on what counts as
     normal.
     """
+    all_rows = None
     if analytes is None:
         all_rows = get_lab_values(patient_id, date_from=date_from, date_to=date_to)
         analytes = sorted({r["investigation"] for r in all_rows if r.get("investigation")})
 
     trends = {}
     for analyte in analytes:
-        rows = get_lab_values(patient_id, investigation=analyte, date_from=date_from, date_to=date_to)
+        if all_rows is None:
+            rows = get_lab_values(patient_id, investigation=analyte, date_from=date_from, date_to=date_to)
+        else:
+            # Match the prior ILIKE substring behavior without another query
+            # for every analyte in an unfiltered trend request.
+            pattern = re.compile(
+                "".join(".*" if char == "%" else "." if char == "_" else re.escape(char) for char in analyte),
+                re.IGNORECASE,
+            )
+            rows = [r for r in all_rows if pattern.search(r.get("investigation") or "")]
         rows = [r for r in rows if r["result_numeric"] is not None and r.get("reports", {}).get("report_date")]
         rows.sort(key=lambda r: r["reports"]["report_date"])
 

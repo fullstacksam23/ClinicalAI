@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+from time import perf_counter
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -26,7 +27,7 @@ if str(PIPELINE_DIR) not in sys.path:
 
 from preprocessing import ProcessFile
 from db import save_report
-from embedding import embed_report, embed_lab_results, delete_report_vectors
+from embedding import embed_report_and_labs, delete_report_vectors
 from output import answer_question
 from summarization import _generate_report_summary
 # The established pipeline's credentials live beside its modules in
@@ -407,6 +408,7 @@ def delete_document(document_id: str) -> None:
 
 @app.post("/api/documents/upload", status_code=201)
 async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
+    upload_started = perf_counter()
     filename = Path(file.filename or "document.pdf").name
     if not filename.lower().endswith(".pdf") or file.content_type not in {"application/pdf", "application/octet-stream", None}:
         raise HTTPException(415, "Please upload a PDF document.")
@@ -424,16 +426,21 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
                     raise HTTPException(413, f"PDF exceeds the {MAX_UPLOAD_BYTES // 1024 // 1024} MB limit.")
                 destination.write(chunk)
         # A lightweight signature check guards against renamed non-PDF uploads.
-        if path.read_bytes()[:5] != b"%PDF-":
+        with path.open("rb") as source:
+            signature = source.read(5)
+        if signature != b"%PDF-":
             path.unlink(missing_ok=True)
             raise HTTPException(415, "The uploaded file is not a valid PDF.")
 
         # Existing protected ingestion sequence: OCR -> metadata/NER -> SQL -> vector storage.
 
+        stage_started = perf_counter()
         fields, lab_df, clean_text, entities = await asyncio.to_thread(
             ProcessFile,
             str(path),
         )
+        logger.info("upload ocr_extraction_seconds=%.3f", perf_counter() - stage_started)
+        stage_started = perf_counter()
         report_id, patient_id = await asyncio.to_thread(
             save_report,
             fields,
@@ -441,32 +448,31 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
             clean_text,
             external_patient_id=EXTERNAL_PATIENT_ID,
         )
+        logger.info("upload supabase_save_seconds=%.3f", perf_counter() - stage_started)
         if str(patient_id) != _patient_id():
             # Do not expose an upload if scope configuration changes during processing.
             raise RuntimeError("Ingestion returned a patient outside the application scope.")
         def run_embeddings():
-            embed_report(
-                str(report_id),
-                clean_text,
-                fields,
-                entities,
-                patient_id=str(patient_id),
-            )
-
-            embed_lab_results(
-                str(report_id),
-                lab_df,
-                fields,
-                patient_id=str(patient_id),
-            )
+            started = perf_counter()
+            try:
+                embed_report_and_labs(
+                    str(report_id), clean_text, lab_df, fields, entities,
+                    patient_id=str(patient_id),
+                )
+            finally:
+                logger.info("upload embeddings_seconds=%.3f", perf_counter() - started)
         def run_summary():
-            return _generate_report_summary(
-                str(report_id),
-                str(patient_id),
-                clean_text,
-                entities,
-                lab_df.to_dict(orient="records") if not lab_df.empty else [],
-            )
+            started = perf_counter()
+            try:
+                return _generate_report_summary(
+                    str(report_id),
+                    str(patient_id),
+                    clean_text,
+                    entities,
+                    lab_df.to_dict(orient="records") if not lab_df.empty else [],
+                )
+            finally:
+                logger.info("upload summary_seconds=%.3f", perf_counter() - started)
         embedding_future = asyncio.create_task(asyncio.to_thread(run_embeddings))
         summary_future = asyncio.create_task(asyncio.to_thread(run_summary))
 
@@ -477,11 +483,13 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
 
         # Wait for both workers without blocking the async event loop. A
         # summary failure must not hide the already-persisted report.
-        _, summary_result = await asyncio.gather(
+        embedding_result, summary_result = await asyncio.gather(
             embedding_future,
             summary_future,
             return_exceptions=True,
         )
+        if isinstance(embedding_result, Exception):
+            logger.error("Upload embedding generation failed")
         if isinstance(summary_result, Exception):
             logger.error("Summary generation failed for report %s: %s", report_id, summary_result)
             from db import update_report_summary
@@ -491,6 +499,7 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
                 logger.error("Could not persist failed summary status for report %s: %s", report_id, update_error)
             summary_result = {"summary": None, "status": "failed"}
 
+        logger.info("upload total_seconds=%.3f", perf_counter() - upload_started)
         return _document_from_report(
             {
                 "id": report_id,
@@ -562,6 +571,7 @@ def delete_conversation(conversation_id: str) -> None:
 
 @app.post("/api/chat")
 def chat(payload: ChatRequest) -> dict[str, Any]:
+    chat_started = perf_counter()
     patient_id = _patient_id()
     question = payload.question.strip()
     if not question:
@@ -589,6 +599,7 @@ def chat(payload: ChatRequest) -> dict[str, Any]:
 
     try:
         result = answer_question(question, patient_id)
+        logger.info("chat answer_pipeline_seconds=%.3f", perf_counter() - chat_started)
         data = result.to_dict()
         sources = data["evidence_used"]
 
@@ -615,6 +626,8 @@ def chat(payload: ChatRequest) -> dict[str, Any]:
             conversation["title"] = question[:80] + ("…" if len(question) > 80 else "")
 
         _save_conversations(conversations)
+
+        logger.info("chat total_seconds=%.3f", perf_counter() - chat_started)
 
         return {
             "conversation_id": conversation_id,

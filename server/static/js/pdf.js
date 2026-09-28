@@ -71,7 +71,7 @@ export async function loadPdfIntoIframe(
       blobUrl;
 
     iframe.src =
-      `${blobUrl}#toolbar=1&view=FitH`;
+      `${blobUrl}#toolbar=1&view=Fit`;
 
     iframe.onload = () => {
       iframe.style.display =

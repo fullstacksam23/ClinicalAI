@@ -11,6 +11,8 @@ import pandas as pd
 QDRANT_URL = "http://localhost:6333"
 COLLECTION_NAME = "clinical_reports"
 VECTOR_SIZE = 768  # MedCPT output dimension
+EMBED_BATCH_SIZE = 32
+UPSERT_BATCH_SIZE = 64
 
 DEFAULT_PATIENT_ID = "prototype_patient"
 # TESTING ONLY. Distinct from db.py's TEST_PATIENT_ID (that's a lookup
@@ -30,11 +32,11 @@ ARTICLE_MODEL_NAME = "ncbi/MedCPT-Article-Encoder"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-query_tokenizer = AutoTokenizer.from_pretrained(QUERY_MODEL_NAME)
-query_model = AutoModel.from_pretrained(QUERY_MODEL_NAME).to(device).eval()
+query_tokenizer = AutoTokenizer.from_pretrained(QUERY_MODEL_NAME, local_files_only=True)
+query_model = AutoModel.from_pretrained(QUERY_MODEL_NAME, local_files_only=True).to(device).eval()
 
-article_tokenizer = AutoTokenizer.from_pretrained(ARTICLE_MODEL_NAME)
-article_model = AutoModel.from_pretrained(ARTICLE_MODEL_NAME).to(device).eval()
+article_tokenizer = AutoTokenizer.from_pretrained(ARTICLE_MODEL_NAME, local_files_only=True)
+article_model = AutoModel.from_pretrained(ARTICLE_MODEL_NAME, local_files_only=True).to(device).eval()
 
 qdrant_client = QdrantClient(url=QDRANT_URL)
 
@@ -55,18 +57,21 @@ _init_qdrant_collection()
 
 def embed_documents(texts):
     """Embed clinical report chunks — used at ingest time."""
-    with torch.no_grad():
-        inputs = article_tokenizer(
-            texts, truncation=True, padding=True, max_length=512, return_tensors="pt"
-        ).to(device)
-        outputs = article_model(**inputs)
-        embeddings = outputs.last_hidden_state[:, 0, :]  # [CLS] token embedding
-    return embeddings.cpu().numpy().tolist()
+    vectors = []
+    with torch.inference_mode():
+        for start in range(0, len(texts), EMBED_BATCH_SIZE):
+            inputs = article_tokenizer(
+                texts[start:start + EMBED_BATCH_SIZE],
+                truncation=True, padding=True, max_length=512, return_tensors="pt"
+            ).to(device)
+            outputs = article_model(**inputs)
+            vectors.extend(outputs.last_hidden_state[:, 0, :].cpu().numpy().tolist())
+    return vectors
 
 
 def embed_query(text):
     """Embed a patient's question — used at search time. Different model than embed_documents."""
-    with torch.no_grad():
+    with torch.inference_mode():
         inputs = query_tokenizer(
             [text], truncation=True, padding=True, max_length=64, return_tensors="pt"
         ).to(device)
@@ -121,6 +126,23 @@ def _build_common_payload(report_id, patient_id, fields, entity_groups):
     }
 
 
+def _upsert_points(points):
+    for start in range(0, len(points), UPSERT_BATCH_SIZE):
+        qdrant_client.upsert(
+            collection_name=COLLECTION_NAME,
+            points=points[start:start + UPSERT_BATCH_SIZE],
+        )
+
+
+def _points_for_texts(texts, metadata, vectors):
+    if len(texts) != len(vectors):
+        raise ValueError("Embedding count does not match the source text count.")
+    return [
+        PointStruct(id=str(uuid.uuid4()), vector=vector, payload={**metadata, "chunk_text": text})
+        for text, vector in zip(texts, vectors)
+    ]
+
+
 def embed_report(report_id, clean_text, fields, entities, patient_id=None):
     """
     fields: a ReportFields object from metadata_extraction.extract_report_fields()
@@ -139,16 +161,8 @@ def embed_report(report_id, clean_text, fields, entities, patient_id=None):
     payload_common = _build_common_payload(report_id, patient_id, fields, entity_groups)
     payload_common["chunk_type"] = "prose"
 
-    points = [
-        PointStruct(
-            id=str(uuid.uuid4()),
-            vector=vectors[i],
-            payload={**payload_common, "chunk_text": chunks[i]},
-        )
-        for i in range(len(chunks))
-    ]
-
-    qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
+    points = _points_for_texts(chunks, payload_common, vectors)
+    _upsert_points(points)
     print(
         f"Embedded {len(chunks)} prose chunk(s) for report {report_id} "
         f"(patient_id={patient_id}, flagged={payload_common['metadata_flagged_for_review']})"
@@ -176,23 +190,10 @@ def _synthesize_lab_sentence(investigation, result_value, result_unit, ref_low, 
     return " ".join(parts).replace(" ,", ",")
 
 
-def embed_lab_results(report_id, lab_df, fields, patient_id=None):
-    """
-    Companion to embed_report — synthesizes one short prose sentence per
-    lab table row and embeds those, so lab VALUES become semantically
-    searchable (currently only report prose is). Structured lookups should
-    still go through Postgres directly (get_lab_values etc.) — this exists
-    so a conversational question like "were any of my results high" can
-    also be answered via retrieval, not to replace the exact-value path.
-
-    No-ops cleanly if lab_df is empty (e.g. radiology reports with no
-    table) — same behavior as insert_lab_results in db.py.
-    """
+def _lab_sentences(lab_df, report_date_value):
+    """Keep lab text and metadata identical across standalone and combined ingest."""
     if lab_df is None or lab_df.empty:
-        return
-
-    patient_id = patient_id or DEFAULT_PATIENT_ID
-    report_date_value = fields.report_date.value
+        return [], []
 
     sentences = []
     row_meta = []
@@ -202,8 +203,6 @@ def embed_lab_results(report_id, lab_df, fields, patient_id=None):
             continue
         investigation = "" if pd.isna(row.get("investigation")) else str(row.get("investigation") or "").strip()
         result_raw = "" if pd.isna(row.get("result_value")) else str(row.get("result_value") or "").strip()
-        ref_raw = "" if pd.isna(row.get("ref_interval_raw")) else str(row.get("ref_interval_raw") or "").strip()
-
         # Skip the same rows insert_lab_results skips (footer row), PLUS
         # rows with no actual result value (e.g. a section-header row like
         # "L F T (TOTAL)" that has an investigation name but blank result —
@@ -231,24 +230,53 @@ def embed_lab_results(report_id, lab_df, fields, patient_id=None):
             "ref_high": ref_high,
         })
 
+    return sentences, row_meta
+
+
+def embed_lab_results(report_id, lab_df, fields, patient_id=None):
+    """Embed lab-result sentences while preserving the standalone entry point."""
+    sentences, row_meta = _lab_sentences(lab_df, fields.report_date.value)
     if not sentences:
         return
+
+    patient_id = patient_id or DEFAULT_PATIENT_ID
 
     vectors = embed_documents(sentences)
     payload_common = _build_common_payload(report_id, patient_id, fields, entity_groups=[])
     payload_common["chunk_type"] = "lab_result"
 
-    points = [
-        PointStruct(
-            id=str(uuid.uuid4()),
-            vector=vectors[i],
-            payload={**payload_common, "chunk_text": sentences[i], **row_meta[i]},
-        )
-        for i in range(len(sentences))
-    ]
-
-    qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
+    points = _points_for_texts(sentences, payload_common, vectors)
+    for point, metadata in zip(points, row_meta):
+        point.payload.update(metadata)
+    _upsert_points(points)
     print(f"Embedded {len(sentences)} lab-result sentence(s) for report {report_id} (patient_id={patient_id})")
+
+
+def embed_report_and_labs(report_id, clean_text, lab_df, fields, entities, patient_id=None):
+    """Encode prose and lab text together and write the resulting vectors in batches."""
+    patient_id = patient_id or DEFAULT_PATIENT_ID
+    chunks = chunk_text(clean_text) if clean_text and clean_text.strip() else []
+    sentences, row_meta = _lab_sentences(lab_df, fields.report_date.value)
+    texts = chunks + sentences
+    if not texts:
+        return
+
+    vectors = embed_documents(texts)
+    points = []
+    if chunks:
+        groups = sorted({e["entity_group"] for e in entities}) if entities else []
+        prose_payload = _build_common_payload(report_id, patient_id, fields, groups)
+        prose_payload["chunk_type"] = "prose"
+        points.extend(_points_for_texts(chunks, prose_payload, vectors[:len(chunks)]))
+    if sentences:
+        lab_payload = _build_common_payload(report_id, patient_id, fields, [])
+        lab_payload["chunk_type"] = "lab_result"
+        lab_points = _points_for_texts(sentences, lab_payload, vectors[len(chunks):])
+        for point, metadata in zip(lab_points, row_meta):
+            point.payload.update(metadata)
+        points.extend(lab_points)
+    _upsert_points(points)
+    print(f"Embedded {len(chunks)} prose and {len(sentences)} lab-result chunk(s) for report {report_id}")
 
 
 class PatientScopedRetriever:

@@ -35,9 +35,22 @@ import {
 
 export function initGlobalHandlers() {
 
+  const closeNavigation = () => {
+    document.querySelector('.sidebar')?.classList.remove('open');
+    document.querySelector('.menu')?.setAttribute('aria-expanded', 'false');
+  };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeNavigation();
+  });
+
   document.addEventListener(
     'click',
     e => {
+
+      if (e.target.closest('.sidebar-backdrop') || e.target.closest('.sidebar nav a, .brand')) {
+        closeNavigation();
+      }
 
       const newChatButton =
         e.target.closest(
@@ -183,14 +196,9 @@ export function initGlobalHandlers() {
           '.menu'
         )
       ) {
-
-        document
-          .querySelector(
-            '.sidebar'
-          )
-          ?.classList.toggle(
-            'open'
-          );
+        const sidebar = document.querySelector('.sidebar');
+        const isOpen = sidebar?.classList.toggle('open');
+        document.querySelector('.menu')?.setAttribute('aria-expanded', String(!!isOpen));
 
         return;
       }

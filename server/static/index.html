@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ClinicalAI — Your health record</title>
+  <meta name="theme-color" content="#EEF4F7" />
   <link rel="stylesheet" href="/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar"><a class="brand" href="#dashboard"><span class="brand-mark">✦</span>ClinicalAI</a>
+    <aside class="sidebar" id="primary-navigation"><a class="brand" href="#dashboard"><span class="brand-mark" aria-hidden="true">+</span><span>Clinical<span class="brand-accent">AI</span></span></a>
+      <div class="sidebar-label">WORKSPACE</div>
       <nav aria-label="Main navigation">
         <a href="#dashboard" data-route="dashboard">Overview</a><a href="#documents" data-route="documents">Documents</a><a href="#timeline" data-route="timeline">Health timeline</a><a href="#trends" data-route="trends">Lab Trends</a><a href="#health" data-route="health">Health record</a><a href="#chat" data-route="chat">Ask ClinicalAI</a>
       </nav>
@@ -16,9 +18,10 @@
         <button class="new-chat-btn" id="new-chat" type="button">+ New chat</button>
         <div class="chat-list" id="chat-list"></div>
       </div>
-      <div class="sidebar-foot"><span class="dot"></span> Private record workspace</div>
+      <div class="sidebar-foot"><span class="dot"></span> Your private record workspace</div>
     </aside>
-    <main><header><button class="menu" aria-label="Open navigation">☰</button><div><p class="eyebrow">YOUR PERSONAL HEALTH RECORD</p><h1 id="page-title">Overview</h1></div><button class="avatar" aria-label="Account">SO</button></header>
+    <div class="sidebar-backdrop" aria-hidden="true"></div>
+    <main><header><button class="menu" type="button" aria-label="Open navigation" aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span></button><div><p class="eyebrow">YOUR PERSONAL HEALTH RECORD</p><h1 id="page-title">Overview</h1></div><div class="header-context"><span class="header-context-dot" aria-hidden="true"></span> Private workspace</div></header>
       <section id="view" aria-live="polite"></section>
     </main>
   </div>

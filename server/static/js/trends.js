@@ -13,12 +13,18 @@ import {
 
 let trendCharts = {};
 
+function cssColor(token) {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
+    .trim();
+}
+
 function trendWarning(analyte, data) {
   if (!data || !data.warning) return '';
   return `
-    <div class="trend-warning card" style="border-color: #f5d0c0; background: #fef5f4; margin-bottom: 16px;">
-      <span class="eyebrow" style="color: var(--red);">Data Quality Notice</span>
-      <p class="muted" style="margin: 8px 0 0;">${esc(data.warning)}</p>
+      <div class="trend-warning card">
+        <span class="eyebrow">Data Quality Notice</span>
+        <p class="muted">${esc(data.warning)}</p>
     </div>
   `;
 }
@@ -73,20 +79,30 @@ function createChart(analyte, data) {
   const refHigh = data.series.map(p => p.ref_high);
   const inRange = data.series.map(p => p.in_range);
 
+  const primaryHover = cssColor('--color-primary-hover');
+  const primaryChart = cssColor('--color-primary-chart');
+  const primaryChartFill = cssColor('--color-primary-chart-fill');
+  const normal = cssColor('--color-normal');
+  const critical = cssColor('--color-critical');
+  const surface = cssColor('--color-surface');
+  const textPrimary = cssColor('--color-text-primary');
+  const textSecondary = cssColor('--color-text-secondary');
+  const border = cssColor('--color-border');
+
   const hasRefRange = data.series.some(p => p.ref_low !== null || p.ref_high !== null);
 
   const datasets = [
     {
       label: analyte,
       data: values,
-      borderColor: 'var(--deep)',
-      backgroundColor: 'rgba(15, 69, 58, 0.1)',
+      borderColor: primaryHover,
+      backgroundColor: primaryChartFill,
       tension: 0.3,
       fill: true,
       pointRadius: 5,
       pointHoverRadius: 7,
-      pointBackgroundColor: data.series.map((_, i) => inRange[i] === false ? 'var(--red)' : inRange[i] === true ? 'var(--green)' : 'var(--deep)'),
-      pointBorderColor: '#fff',
+      pointBackgroundColor: data.series.map((_, i) => inRange[i] === false ? critical : inRange[i] === true ? normal : primaryHover),
+      pointBorderColor: surface,
       pointBorderWidth: 2,
     }
   ];
@@ -103,18 +119,18 @@ function createChart(analyte, data) {
         {
           label: 'Reference Range',
           data: labels.map(() => avgHigh),
-          borderColor: 'rgba(23, 105, 90, 0.3)',
+          borderColor: primaryChart,
           borderWidth: 1,
           borderDash: [5, 5],
           fill: '-1',
-          backgroundColor: 'rgba(23, 105, 90, 0.05)',
+          backgroundColor: primaryChartFill,
           pointRadius: 0,
           type: 'line',
         },
         {
           label: '',
           data: labels.map(() => avgLow),
-          borderColor: 'rgba(23, 105, 90, 0.3)',
+          borderColor: primaryChart,
           borderWidth: 1,
           borderDash: [5, 5],
           fill: false,
@@ -142,9 +158,9 @@ function createChart(analyte, data) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'var(--ink)',
-          titleColor: '#fff',
-          bodyColor: '#fff',
+          backgroundColor: textPrimary,
+          titleColor: surface,
+          bodyColor: surface,
           padding: 12,
           cornerRadius: 8,
           callbacks: {
@@ -163,15 +179,15 @@ function createChart(analyte, data) {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: 'var(--muted)', font: { size: 11 } },
+          ticks: { color: textSecondary, font: { size: 11 } },
         },
         y: {
-          grid: { color: 'var(--line)' },
-          ticks: { color: 'var(--muted)', font: { size: 11 } },
+          grid: { color: border },
+          ticks: { color: textSecondary, font: { size: 11 } },
           title: {
             display: true,
             text: data.series[0]?.unit || '',
-            color: 'var(--muted)',
+            color: textSecondary,
             font: { size: 11, weight: 500 }
           }
         }
@@ -211,7 +227,7 @@ export async function trends() {
       <div id="trends-toolbar-toggle" style="display: ${hasExplicitParams ? 'none' : 'block'}; margin-bottom: 16px;">
         <button class="button ghost" id="customize-trends" type="button">Customize analytes & date range</button>
       </div>
-      <div id="trends-container" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));"></div>
+      <div id="trends-container" class="grid trends-grid"></div>
       <div id="trends-empty" class="empty" style="display: none;">
         <strong>Not enough data for trends</strong>
         <p>Trends require at least 2 measurements for the same lab test over time. Upload more lab reports to see trends.</p>

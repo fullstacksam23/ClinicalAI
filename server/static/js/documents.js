@@ -190,7 +190,7 @@ export async function dashboard() {
     'Overview';
 
   view.innerHTML = `
-    <div class="intro">
+    <div class="intro dashboard-hero">
 
       <div>
 
@@ -213,6 +213,27 @@ export async function dashboard() {
         Upload a document
       </button>
 
+    </div>
+
+    <div class="dashboard-stats" aria-label="Your record at a glance">
+      <button class="dashboard-stat stat-documents" type="button" data-go="documents">
+        <span class="stat-icon" aria-hidden="true">D</span>
+        <span class="stat-label">Documents</span>
+        <strong class="stat-value" id="document-count">—</strong>
+        <span class="stat-note">Reports in your record</span>
+      </button>
+      <button class="dashboard-stat stat-labs" type="button" data-go="health">
+        <span class="stat-icon" aria-hidden="true">L</span>
+        <span class="stat-label">Lab results</span>
+        <strong class="stat-value" id="lab-count">—</strong>
+        <span class="stat-note">Results from your reports</span>
+      </button>
+      <button class="dashboard-stat stat-trends" type="button" data-go="trends">
+        <span class="stat-icon" aria-hidden="true">T</span>
+        <span class="stat-label">Health trends</span>
+        <strong class="stat-value" id="trend-count">—</strong>
+        <span class="stat-note">Tests with recorded history</span>
+      </button>
     </div>
 
     <div class="grid">
@@ -273,6 +294,10 @@ export async function dashboard() {
 
   try {
     await loadDocs();
+    if (!document.querySelector('#recent')) return;
+
+    document.querySelector('#document-count').textContent =
+      String(state.docs.filter(d => d.status !== 'failed').length);
 
     document.querySelector(
       '#recent'
@@ -283,6 +308,7 @@ export async function dashboard() {
       );
 
   } catch (e) {
+    if (!document.querySelector('#recent')) return;
     document.querySelector(
       '#recent'
     ).innerHTML = `
@@ -296,6 +322,26 @@ export async function dashboard() {
 
       </div>
     `;
+  }
+
+  try {
+    const labs = await api('/lab-results');
+    if (!document.querySelector('#lab-count')) return;
+    if (!Array.isArray(labs)) throw new Error('Lab results are unavailable.');
+    document.querySelector('#lab-count').textContent = String(labs.length);
+    const reportHistory = new Map();
+    labs.forEach(lab => {
+      if (!lab.investigation || !lab.report_date || !lab.report_id || lab.result_numeric == null) return;
+      if (!reportHistory.has(lab.investigation)) reportHistory.set(lab.investigation, new Set());
+      reportHistory.get(lab.investigation).add(lab.report_id);
+    });
+    document.querySelector('#trend-count').textContent =
+      String([...reportHistory.values()].filter(reportIds => reportIds.size >= 2).length);
+  } catch {
+    if (document.querySelector('#lab-count')) {
+      document.querySelector('#lab-count').textContent = '—';
+      document.querySelector('#trend-count').textContent = '—';
+    }
   }
 }
 

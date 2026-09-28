@@ -34,8 +34,11 @@ user/patient mapping and enable database RLS as a second, independent layer.
 from __future__ import annotations
 
 import json
+import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, asdict
+from time import perf_counter
 from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
@@ -72,6 +75,7 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not set in the environment.")
 
 _gemini = genai.Client(api_key=GEMINI_API_KEY)
+logger = logging.getLogger("clinicalai.retrieval")
 
 
 
@@ -359,11 +363,18 @@ class ReportSelectionPlanner:
                 response_schema=ReportSelectionModel,
             ),
         )
+        selector_metadata = [
+            {key: row.get(key) for key in (
+                "id", "report_type", "report_date", "referring_doctor",
+                "metadata_flagged_for_review",
+            )}
+            for row in report_metadata
+        ]
         response = chat.send_message(
             json.dumps(
                 {
                     "question": question,
-                    "reports": report_metadata,
+                    "reports": selector_metadata,
                 },
                 ensure_ascii=False,
                 default=str,
@@ -464,7 +475,11 @@ class PatientScopedSQLRetriever:
             for row in reports
         ]
 
-        selection = self._selector.select(question, report_inventory)
+        selection_started = perf_counter()
+        try:
+            selection = self._selector.select(question, report_inventory)
+        finally:
+            logger.info("chat report_selection_seconds=%.3f", perf_counter() - selection_started)
         selected_set = set(selection.selected_report_ids)
 
         selected_reports = [
@@ -572,28 +587,28 @@ class ClinicalRetrievalEngine:
         self.vector_score_threshold = vector_score_threshold
 
     def retrieve(self, question: str) -> RetrievalResponse:
-        plan = self.planner.plan(question)
+        # The structured path needs the question and trusted patient context,
+        # but does not depend on the planner's output.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            sql_future = executor.submit(self.sql.run, question)
+            planning_started = perf_counter()
+            try:
+                plan = self.planner.plan(question)
+            finally:
+                logger.info("chat planning_seconds=%.3f", perf_counter() - planning_started)
 
-        sql_results: Dict[str, Any] = {}
-        vector_results: List[Dict[str, Any]] = []
-
-        # ALWAYS run the two-stage structured retrieval pipeline.
-        # Stage 1 retrieves the patient's report metadata; stage 2 uses an LLM
-        # only to select IDs from that already-authorized inventory and decide
-        # whether lab_results are needed. The backend executes the actual DB query.
-        sql_results = self.sql.run(question)
-
-        # ALWAYS run semantic vector retrieval as well. The LLM only supplies the
-        # semantic query text; patient_id remains fixed inside PatientScopedRetriever.
-        query = plan.search_query or question
-        # Vector retrieval is ALWAYS patient-wide within this patient's
-        # corpus. There are no report/date/doctor/type filters on Qdrant.
-        # The user question itself is the semantic signal.
-        vector_results = self.vector.search(
-            query,
-            limit=plan.limit,
-            score_threshold=self.vector_score_threshold,
-        )
+            # The vector path uses the planner's query rewrite and remains
+            # patient-wide within the server-controlled patient scope.
+            vector_started = perf_counter()
+            try:
+                vector_results = self.vector.search(
+                    plan.search_query or question,
+                    limit=plan.limit,
+                    score_threshold=self.vector_score_threshold,
+                )
+            finally:
+                logger.info("chat vector_search_seconds=%.3f", perf_counter() - vector_started)
+            sql_results = sql_future.result()
 
         return RetrievalResponse(
             patient_id=self.context.patient_id,

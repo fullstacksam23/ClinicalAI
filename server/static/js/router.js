@@ -33,14 +33,18 @@ export function route() {
     .querySelectorAll(
       '[data-route]'
     )
-    .forEach(a =>
+    .forEach(a => {
+      const active = a.dataset.route === (page || 'dashboard');
       a.classList.toggle(
         'active',
-        a.dataset.route ===
-          (page ||
-            'dashboard')
-      )
-    );
+        active
+      );
+      if (active) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+
+  document.querySelector('.sidebar')?.classList.remove('open');
+  document.querySelector('.menu')?.setAttribute('aria-expanded', 'false');
 
   renderSidebarChats(
     page === 'chat'
