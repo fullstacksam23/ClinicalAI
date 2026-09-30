@@ -6,3 +6,4 @@ qdrant_storage
 data/
 pdfs/
 __pycache__/
+.idea/

@@ -103,6 +103,8 @@ def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
         or datetime.now(timezone.utc).date().isoformat()
     )
 
+    from report_tags import report_type_tags
+
     report_row = {
         "patient_id": patient_id,
         "report_type": fields.report_type.value,
@@ -117,6 +119,7 @@ def insert_report(fields, clean_text, patient_id, raw_ocr_job_id=None,
         "extra_metadata": extra_metadata,
         "pipeline_version": pipeline_version,
         "summary_status": "pending",
+        "tags": report_type_tags(fields.report_type.value),
     }
 
     inserted = supabase.table("reports").insert(report_row).execute()
@@ -427,7 +430,7 @@ def get_reports_list(patient_id, doctor=None, report_type=None, date_from=None, 
     """
     query = (
         supabase.table("reports")
-        .select("id, report_type, report_date, referring_doctor, patient_age_at_report, patient_sex, metadata_flagged_for_review, extra_metadata, summary, summary_status")
+        .select("id, report_type, report_date, referring_doctor, patient_age_at_report, patient_sex, metadata_flagged_for_review, extra_metadata, summary, summary_status, tags")
         .eq("patient_id", patient_id)
         .order("report_date", desc=True)
     )
@@ -446,10 +449,25 @@ def get_report_by_id(report_id, patient_id):
     """Fetch a single report by ID ensuring patient-scope ownership."""
     rows = (
         supabase.table("reports")
-        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review, extra_metadata, summary, summary_status")
+        .select("id, report_type, report_date, referring_doctor, metadata_flagged_for_review, extra_metadata, summary, summary_status, tags")
         .eq("id", str(report_id))
         .eq("patient_id", str(patient_id))
         .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return rows[0] if rows else None
+
+
+def update_report_tags(report_id, patient_id, tags):
+    """Replace tags only on a report owned by the server-resolved patient."""
+    rows = (
+        supabase.table("reports")
+        .update({"tags": tags})
+        .eq("id", str(report_id))
+        .eq("patient_id", str(patient_id))
+        .select("id, tags")
         .execute()
         .data
         or []

@@ -15,8 +15,13 @@ import {
   cleanupPdfBlob,
   loadPdfIntoIframe
 } from './pdf.js';
+import { availableTags, filterDocuments } from './documentFilters.js';
 
 let summaryPollTimer = null;
+
+function tagChips(tags = []) {
+  return tags.map(tag => `<span class="tag-chip">${esc(tag)}</span>`).join('');
+}
 
 function summaryCard(documentData) {
   const status = documentData.summary_status || 'pending';
@@ -137,6 +142,7 @@ export function docRows(
                       d.uploaded_at
                   )}
                 </div>
+                ${d.tags?.length ? `<div class="tag-list" aria-label="Report tags">${tagChips(d.tags)}</div>` : ''}
 
               </div>
 
@@ -406,7 +412,7 @@ export function documents() {
       <input
         class="search"
         id="search"
-        placeholder="Search by document name or type"
+        placeholder="Search reports, doctors, dates, or tags"
         aria-label="Search documents"
       />
 
@@ -417,6 +423,20 @@ export function documents() {
       </button>
 
     </div>
+
+    <div class="document-filters" aria-label="Document filters">
+      <label>Tag
+        <select class="search" id="tag-filter"><option value="">All tags</option></select>
+      </label>
+      <label>From
+        <input class="search" type="date" id="document-date-from" />
+      </label>
+      <label>To
+        <input class="search" type="date" id="document-date-to" />
+      </label>
+      <button class="button ghost" type="button" id="clear-document-filters">Clear filters</button>
+    </div>
+    <p class="filter-status" id="filter-status" role="status"></p>
 
     <div class="card">
 
@@ -504,12 +524,17 @@ export function documents() {
 
   });
 
-  document.querySelector(
-    '#search'
-  ).oninput = e =>
-    renderDocs(
-      e.target.value
-    );
+  document.querySelector('#search').oninput = paintDocList;
+  document.querySelector('#tag-filter').onchange = paintDocList;
+  document.querySelector('#document-date-from').onchange = paintDocList;
+  document.querySelector('#document-date-to').onchange = paintDocList;
+  document.querySelector('#clear-document-filters').onclick = () => {
+    for (const id of ['search', 'tag-filter', 'document-date-from', 'document-date-to']) {
+      document.getElementById(id).value = '';
+    }
+    paintDocList();
+    document.getElementById('search').focus();
+  };
 
   document.querySelector(
     '#refresh'
@@ -519,9 +544,28 @@ export function documents() {
   renderDocs();
 }
 
-export async function renderDocs(
-  query = ''
-) {
+function paintDocList() {
+  const el = document.querySelector('#documents-list');
+  if (!el) return;
+  const query = document.getElementById('search').value;
+  const tag = document.getElementById('tag-filter').value;
+  const from = document.getElementById('document-date-from').value;
+  const to = document.getElementById('document-date-to').value;
+  const status = document.getElementById('filter-status');
+  status.classList.toggle('invalid', !!(from && to && from > to));
+  if (from && to && from > to) {
+    status.textContent = 'The start date must be before the end date.';
+    el.innerHTML = '';
+    return;
+  }
+  const items = filterDocuments(state.docs, { query, tag, from, to });
+  status.textContent = `${items.length} of ${state.docs.length} documents shown`;
+  el.innerHTML = items.length || !state.docs.length
+    ? docRows(items)
+    : '<div class="empty"><strong>No matching documents</strong>Try another search or clear the filters.</div>';
+}
+
+export async function renderDocs() {
   const el =
     document.querySelector(
       '#documents-list'
@@ -531,22 +575,14 @@ export async function renderDocs(
 
   try {
     await loadDocs();
-
-    const q =
-      query.toLowerCase();
-
-    const items =
-      state.docs.filter(
-        d =>
-          `${d.filename} ${
-            d.report_type || ''
-          }`
-            .toLowerCase()
-            .includes(q)
-      );
-
-    el.innerHTML =
-      docRows(items);
+    if (!document.querySelector('#documents-list')) return;
+    const selector = document.getElementById('tag-filter');
+    const selected = selector.value;
+    selector.innerHTML = '<option value="">All tags</option>' + availableTags(state.docs)
+      .map(tag => `<option value="${esc(tag)}">${esc(tag)}</option>`).join('');
+    selector.value = availableTags(state.docs).some(tag => tag.toLocaleLowerCase() === selected.toLocaleLowerCase())
+      ? selected : '';
+    paintDocList();
 
   } catch (e) {
     el.innerHTML = `
@@ -786,6 +822,19 @@ export async function documentView(
 
         <aside class="card">
 
+          <section class="report-tags" aria-labelledby="report-tags-title">
+            <h3 id="report-tags-title">Tags</h3>
+            <div class="tag-list" id="report-tag-list">${tagChips(d.tags || []) || '<span class="muted">No tags yet</span>'}</div>
+            <form id="report-tags-form">
+              <label for="report-tags-input">Edit tags</label>
+              <input class="search" id="report-tags-input" type="text" maxlength="400"
+                value="${esc((d.tags || []).join(', '))}" placeholder="e.g. Cardiology, Follow-up" />
+              <small>Separate tags with commas. Up to 10 tags, 32 characters each.</small>
+              <p class="tag-error" id="report-tags-error" role="alert"></p>
+              <button class="button ghost" type="submit">Save tags</button>
+            </form>
+          </section>
+
           <h3>
             Document information
           </h3>
@@ -821,6 +870,46 @@ export async function documentView(
 
       </div>
     `;
+
+    const tagsForm = document.querySelector('#report-tags-form');
+    tagsForm.onsubmit = async event => {
+      event.preventDefault();
+      const input = document.querySelector('#report-tags-input');
+      const error = document.querySelector('#report-tags-error');
+      const button = tagsForm.querySelector('button[type="submit"]');
+      const tags = input.value.split(',').map(tag => tag.trim()).filter(Boolean);
+      const seen = new Set();
+      const unique = tags.filter(tag => {
+        const key = tag.toLocaleLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      if (tags.length > 10 || unique.some(tag => tag.length > 32)) {
+        error.textContent = 'Use up to 10 tags with no more than 32 characters each.';
+        return;
+      }
+      error.textContent = '';
+      button.disabled = true;
+      try {
+        const updated = await api('/documents/' + encodeURIComponent(id) + '/tags', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags: unique }),
+        });
+        d.tags = updated.tags;
+        const stored = state.docs.find(item => item.id === id);
+        if (stored) stored.tags = updated.tags;
+        document.querySelector('#report-tag-list').innerHTML =
+          tagChips(updated.tags) || '<span class="muted">No tags yet</span>';
+        input.value = updated.tags.join(', ');
+        toast('Tags saved.');
+      } catch (saveError) {
+        error.textContent = `Could not save tags: ${saveError.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    };
 
     if (d.has_file) {
       loadPdfIntoIframe(

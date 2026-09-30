@@ -30,6 +30,7 @@ from db import save_report
 from embedding import embed_report_and_labs, delete_report_vectors
 from output import answer_question
 from summarization import _generate_report_summary
+from report_tags import ReportTagsRequest, report_type_tags
 # The established pipeline's credentials live beside its modules in
 # ``server/.env``. Resolve that file explicitly so starting Uvicorn from the
 # repository root exposes the identical configuration to db.py and the other
@@ -172,6 +173,7 @@ def _document_from_report(report: dict[str, Any], local: dict[str, Any] | None =
         "extra_metadata": report.get("extra_metadata") or {},
         "summary": report.get("summary"),
         "summary_status": report.get("summary_status") or ("completed" if report.get("summary") else "pending"),
+        "tags": report.get("tags") or [],
         "has_file": bool(local.get("file_path") and Path(local["file_path"]).is_file()),
     }
 
@@ -222,6 +224,17 @@ def get_document(document_id: str) -> dict[str, Any]:
         except Exception as exc:
             logger.warning("Could not load labs for document %s: %s", document_id, exc)
     return document
+
+
+@app.patch("/api/documents/{document_id}/tags")
+def set_document_tags(document_id: str, payload: ReportTagsRequest) -> dict[str, Any]:
+    patient_id = _patient_id()
+    from db import update_report_tags
+
+    updated = update_report_tags(document_id, patient_id, payload.tags)
+    if not updated:
+        raise HTTPException(404, "Document not found.")
+    return {"id": str(updated["id"]), "tags": updated.get("tags") or []}
 
 
 @app.get("/api/documents/{document_id}/file")
@@ -506,6 +519,7 @@ async def upload_document(file: UploadFile = File(...)) -> dict[str, Any]:
                 **metadata,
                 "summary": summary_result["summary"],
                 "summary_status": summary_result["status"],
+                "tags": report_type_tags(fields.report_type.value),
             },
             index[str(report_id)],
         )

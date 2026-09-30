@@ -18,9 +18,11 @@ export const api = async (path, options = {}) => {
       d = await r.json();
     } catch {}
 
-    throw Error(
-      d.detail || 'Something went wrong.'
-    );
+    const detail = Array.isArray(d.detail)
+      ? d.detail.map(item => item.msg).filter(Boolean).join(' ')
+      : d.detail;
+    throw Error(typeof detail === 'string' && detail
+      ? detail : 'Something went wrong.');
   }
 
   return r.status === 204

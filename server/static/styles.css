@@ -1275,6 +1275,22 @@ h1{font-size:31px}
 .doc-row .link-button{white-space:nowrap}
 .doc-row .danger{padding:6px 7px;border-radius:7px}
 .doc-row .danger:hover{background:var(--color-critical-bg)}
+.document-filters{display:grid;grid-template-columns:minmax(170px,1fr) repeat(2,minmax(145px,.65fr)) auto;gap:12px;align-items:end;margin:-3px 0 7px}
+.document-filters label{display:grid;gap:6px;color:var(--color-text-secondary);font-size:12px;font-weight:700}
+.document-filters .search{width:100%;min-height:42px;background:#fff;color:var(--color-text-primary)}
+.document-filters .button{min-height:42px;white-space:nowrap}
+.filter-status{min-height:18px;margin:0 0 13px;color:var(--color-text-secondary);font-size:12px}
+.filter-status.invalid{color:var(--color-critical)}
+.tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag-chip{display:inline-flex;align-items:center;max-width:100%;padding:3px 8px;border:1px solid #D7D8EC;border-radius:999px;background:#F2F0FB;color:#5C497F;font-size:11px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.report-tags{padding-bottom:21px;margin-bottom:23px;border-bottom:1px solid var(--color-border)}
+.report-tags .tag-list{min-height:28px;margin:0 0 14px}
+.report-tags form{display:grid;gap:8px}
+.report-tags label{font-size:12px;font-weight:700;color:var(--color-text-secondary)}
+.report-tags small{color:var(--color-text-secondary);font-size:11px;line-height:1.4}
+.report-tags .button{justify-self:start}
+.tag-error{margin:0;color:var(--color-critical);font-size:12px}
+.tag-error:empty{display:none}
 .empty{max-width:470px;margin:auto;line-height:1.6}
 .empty strong{font-size:22px}
 .search,.composer textarea{background:#fff;border-color:#C8DADB;color:var(--color-text-primary)}
@@ -1326,6 +1342,7 @@ h1{font-size:31px}
   .grid{grid-template-columns:1fr}
 }
 @media(max-width:800px){
+  .document-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
   .dashboard-hero{padding:23px;min-height:0}
   .dashboard-stats{gap:10px}
   .dashboard-stat{padding:12px;grid-template-columns:1fr}
@@ -1354,6 +1371,8 @@ h1{font-size:31px}
   .stat-icon{grid-row:1/4;margin:0}
 }
 @media(max-width:480px){
+  .document-filters{gap:9px}
+  .document-filters label:first-child,.document-filters .button{grid-column:1/-1}
   header{padding:12px 17px}
   h1{font-size:25px}
   header .eyebrow{font-size:9px}

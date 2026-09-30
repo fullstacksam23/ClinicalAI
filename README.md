@@ -36,6 +36,8 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
       check (summary_status in ('pending', 'completed', 'failed'));
    ```
 
+   For report tags, also apply [`server/migrations/20260928_add_report_tags.sql`](server/migrations/20260928_add_report_tags.sql) in the Supabase SQL editor before starting the updated application. Existing reports receive an empty tag list. New uploads receive their extracted report type as an initial tag when it meets the tag length and character rules; tags can then be edited on the report detail page.
+
 4. Start the product:
 
    ```powershell
@@ -51,6 +53,7 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
 - `GET /api/documents/{id}`
 - `GET /api/documents/{id}/file`
 - `GET /api/documents/{id}/status`
+- `PATCH /api/documents/{id}/tags` (`{ "tags": ["Cardiology", "Follow-up"] }`; replaces up to 10 tags on the current patient's report)
 - `POST /api/documents/upload` (multipart `file`, PDF, configurable 25 MB limit)
 - `POST /api/documents/{id}/summary/retry`
 - `POST /api/chat` (`{ "question": "..." }`)
