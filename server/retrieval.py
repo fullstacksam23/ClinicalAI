@@ -42,10 +42,9 @@ from time import perf_counter
 from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
 
+from chat_llm import complete_json
 from db import (
     get_abnormal_results,
     get_lab_trend,
@@ -61,7 +60,7 @@ load_dotenv()
 # Configuration
 # ---------------------------------------------------------------------------
 
-ROUTER_MODEL = os.getenv("CLINICAL_ROUTER_MODEL", "gemini-2.5-flash-lite")
+ROUTER_MODEL = os.getenv("CLINICAL_ROUTER_MODEL", "openai/gpt-oss-20b")
 ROUTER_MAX_QUESTION_CHARS = 6000
 DEFAULT_VECTOR_RESULTS = 6
 DEFAULT_VECTOR_SCORE_THRESHOLD = 0.30
@@ -70,17 +69,12 @@ DEFAULT_VECTOR_SCORE_THRESHOLD = 0.30
 # the authenticated patient's ID into ClinicalRetrievalEngine(...).
 TEST_PATIENT_ID = os.getenv("TEST_PATIENT_ID")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not set in the environment.")
-
-_gemini = genai.Client(api_key=GEMINI_API_KEY)
 logger = logging.getLogger("clinicalai.retrieval")
 
 
 
 # ---------------------------------------------------------------------------
-# Gemini structured-output models
+# Chat structured-output models
 # ---------------------------------------------------------------------------
 
 class RetrievalPlanModel(BaseModel):
@@ -241,26 +235,13 @@ class RetrievalPlanner:
         if len(question) > ROUTER_MAX_QUESTION_CHARS:
             question = question[:ROUTER_MAX_QUESTION_CHARS]
 
-        chat = _gemini.chats.create(
+        raw = complete_json(
             model=self.model,
-            config=types.GenerateContentConfig(
-                temperature=0,
-                response_mime_type="application/json",
-                response_schema=RetrievalPlanModel,
-            ),
+            system=ROUTER_SYSTEM_PROMPT,
+            user=f"USER QUESTION:\n{question}",
+            schema=ROUTER_SCHEMA,
+            name="retrieval_plan",
         )
-        response = chat.send_message(
-            f"{ROUTER_SYSTEM_PROMPT}\n\nUSER QUESTION:\n{question}"
-        )
-
-        parsed = getattr(response, "parsed", None)
-        if isinstance(parsed, BaseModel):
-            raw = parsed.model_dump()
-        else:
-            raw_text = (response.text or "").strip()
-            if not raw_text:
-                raise RuntimeError("Gemini retrieval planner returned empty content.")
-            raw = json.loads(raw_text)
 
         # Defensive normalization; do not trust model-generated values.
         operation = raw.get("operation")
@@ -355,14 +336,6 @@ class ReportSelectionPlanner:
             if row.get("id") is not None
         }
 
-        chat = _gemini.chats.create(
-            model=self.model,
-            config=types.GenerateContentConfig(
-                temperature=0,
-                response_mime_type="application/json",
-                response_schema=ReportSelectionModel,
-            ),
-        )
         selector_metadata = [
             {key: row.get(key) for key in (
                 "id", "report_type", "report_date", "referring_doctor",
@@ -370,25 +343,20 @@ class ReportSelectionPlanner:
             )}
             for row in report_metadata
         ]
-        response = chat.send_message(
-            json.dumps(
+        raw = complete_json(
+            model=self.model,
+            system=REPORT_SELECTION_SYSTEM_PROMPT,
+            schema=REPORT_SELECTION_SCHEMA,
+            name="report_selection",
+            user=json.dumps(
                 {
                     "question": question,
                     "reports": selector_metadata,
                 },
                 ensure_ascii=False,
                 default=str,
-            )
+            ),
         )
-
-        parsed = getattr(response, "parsed", None)
-        if isinstance(parsed, BaseModel):
-            raw = parsed.model_dump()
-        else:
-            raw_text = (response.text or "").strip()
-            if not raw_text:
-                raise RuntimeError("Gemini report selector returned empty content.")
-            raw = json.loads(raw_text)
 
         requested_ids = [str(x).strip() for x in (raw.get("selected_report_ids") or [])]
 

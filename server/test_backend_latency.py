@@ -2,7 +2,6 @@
 
 import importlib.util
 import json
-import os
 import sys
 import threading
 import types
@@ -146,21 +145,14 @@ class TrendTests(unittest.TestCase):
 
 
 def retrieval_module():
-    google = types.ModuleType("google")
-    genai = types.ModuleType("google.genai")
-    genai.Client = lambda **_kwargs: Mock()
-    genai.types = types.SimpleNamespace()
-    google.genai = genai
     db = types.ModuleType("db")
     for name in ("get_abnormal_results", "get_lab_trend", "get_latest_lab_values",
                  "get_lab_values", "get_reports_list"):
         setattr(db, name, Mock())
     embedding = types.ModuleType("embedding")
     embedding.PatientScopedRetriever = Mock()
-    with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}):
-        return load_with_stubs("_latency_retrieval", "retrieval.py",
-                               {"google": google, "google.genai": genai,
-                                "db": db, "embedding": embedding})
+    return load_with_stubs("_latency_retrieval", "retrieval.py",
+                           {"db": db, "embedding": embedding})
 
 
 class RetrievalTests(unittest.TestCase):
@@ -231,19 +223,13 @@ class RetrievalTests(unittest.TestCase):
 
     def test_selector_receives_only_required_report_metadata(self):
         sent = []
-        chat = types.SimpleNamespace(send_message=lambda prompt: (
-            sent.append(json.loads(prompt)) or
-            types.SimpleNamespace(parsed=None, text=json.dumps({
+        def completion(**kwargs):
+            sent.append(json.loads(kwargs["user"]))
+            return {
                 "selected_report_ids": ["r1", "another-patient-report"],
                 "needs_lab_results": False, "reason": "matched",
-            }))
-        ))
-        fake_client = types.SimpleNamespace(chats=types.SimpleNamespace(
-            create=lambda **_kwargs: chat,
-        ))
-        with patch.object(self.module, "_gemini", fake_client), patch.object(
-            self.module.types, "GenerateContentConfig", lambda **_kwargs: None, create=True
-        ):
+            }
+        with patch.object(self.module, "complete_json", side_effect=completion):
             selection = self.module.ReportSelectionPlanner().select("question", [{
                 "id": "r1", "report_type": "Lab", "report_date": "2026-01-01",
                 "referring_doctor": "Dr A", "metadata_flagged_for_review": False,

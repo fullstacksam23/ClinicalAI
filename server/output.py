@@ -23,10 +23,9 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Literal, Optional
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
 
+from chat_llm import complete_json
 from retrieval import ClinicalRetrievalEngine, RetrievalResponse
 
 
@@ -39,27 +38,22 @@ load_dotenv()
 
 ANSWER_MODEL = os.getenv(
     "CLINICAL_ANSWER_MODEL",
-    "gemini-2.5-flash",
+    "openai/gpt-oss-120b",
 )
 
-MAX_QUESTION_CHARS = 6000
+MAX_QUESTION_CHARS = 1500
 
 # Maximum amount of evidence sent to the final answer model.
 # These are application-owned limits, NOT model-controlled.
-MAX_SQL_JSON_CHARS = 50000
-MAX_VECTOR_JSON_CHARS = 50000
+MAX_SQL_JSON_CHARS = 2500
+MAX_VECTOR_JSON_CHARS = 2500
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not set.")
-
-_gemini = genai.Client(api_key=GEMINI_API_KEY)
 logger = logging.getLogger("clinicalai.output")
 
 
 
 # ---------------------------------------------------------------------------
-# Gemini structured-output models
+# Chat structured-output models
 # ---------------------------------------------------------------------------
 
 class EvidenceUsedModel(BaseModel):
@@ -471,20 +465,45 @@ def _bounded_json(data: Any, max_chars: int) -> str:
     This protects the final model from unexpectedly large retrieval payloads.
     """
 
-    text = json.dumps(
-        data,
-        ensure_ascii=False,
-        default=str,
-        indent=2,
-    )
+    def encode(value: Any) -> str:
+        return json.dumps(value, ensure_ascii=False, default=str, separators=(",", ":"))
 
-    if len(text) <= max_chars:
-        return text
+    def clip_strings(value: Any, limit: int) -> Any:
+        if isinstance(value, str):
+            return value if len(value) <= limit else value[:max(0, limit - 16)] + "…[truncated]"
+        if isinstance(value, list):
+            return [clip_strings(item, limit) for item in value]
+        if isinstance(value, dict):
+            return {key: clip_strings(item, limit) for key, item in value.items()}
+        return value
 
-    return (
-        text[:max_chars]
-        + "\n\n[Evidence truncated by application context budget.]"
-    )
+    # Keep valid JSON: raw character slicing can break the evidence structure,
+    # and long OCR chunks can otherwise consume the entire provider request.
+    clipped = clip_strings(data, max(128, max_chars // 3))
+    while len(encode(clipped)) > max_chars:
+        lists: List[List[Any]] = []
+
+        def collect_lists(value: Any) -> None:
+            if isinstance(value, list):
+                lists.append(value)
+                for item in value:
+                    collect_lists(item)
+            elif isinstance(value, dict):
+                for item in value.values():
+                    collect_lists(item)
+
+        collect_lists(clipped)
+        largest = max(lists, key=len, default=None)
+        if largest:
+            largest.pop()
+            continue
+
+        # Scalar-heavy objects are unusual, but still enforce the hard cap.
+        clipped = clip_strings(clipped, max(32, max_chars // 8))
+        if len(encode(clipped)) > max_chars:
+            return "{}"
+
+    return encode(clipped)
 
 
 # ---------------------------------------------------------------------------
@@ -595,35 +614,17 @@ State clearly when the available evidence is insufficient.
         # Final LLM call
         # -------------------------------------------------------------------
 
-        chat = _gemini.chats.create(
-            model=self.model,
-            config=types.GenerateContentConfig(
-                temperature=0,
-                response_mime_type="application/json",
-                response_schema=ClinicalAnswerModel,
-            ),
-        )
         generation_started = perf_counter()
         try:
-            response = chat.send_message(user_prompt)
+            raw = complete_json(
+                model=self.model,
+                system=ANSWER_SYSTEM_PROMPT,
+                user=user_prompt,
+                schema=ANSWER_SCHEMA,
+                name="clinical_answer",
+            )
         finally:
             logger.info("chat answer_generation_seconds=%.3f", perf_counter() - generation_started)
-
-        parsed = getattr(response, "parsed", None)
-        if isinstance(parsed, BaseModel):
-            raw = parsed.model_dump()
-        else:
-            raw_content = (response.text or "").strip()
-            if not raw_content:
-                raise RuntimeError(
-                    "Gemini answer-generation model returned empty content."
-                )
-            try:
-                raw = json.loads(raw_content)
-            except json.JSONDecodeError as exc:
-                raise RuntimeError(
-                    "Gemini answer-generation model returned invalid JSON."
-                ) from exc
 
         # -------------------------------------------------------------------
         # Defensive normalization

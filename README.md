@@ -24,7 +24,7 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
    pip install -r requirements.txt
    ```
 
-3. Copy `.env.example` to `.env` and add the existing pipeline credentials: Paddle OCR, Gemini, Supabase, and a running Qdrant service. Retain `CLINICALAI_EXTERNAL_PATIENT_ID=test_patient_001` for the current single-patient prototype.
+3. Copy `.env.example` to `server/.env` and add the pipeline credentials: Paddle OCR, Gemini for report processing and summaries, Groq for chat, Supabase, and a running Qdrant service. Set `GROQ_API_KEY` in `server/.env`; chat uses `CLINICAL_ROUTER_MODEL=openai/gpt-oss-20b` and `CLINICAL_ANSWER_MODEL=openai/gpt-oss-120b` by default. Retain `CLINICALAI_EXTERNAL_PATIENT_ID=test_patient_001` for the current single-patient prototype.
 
    Before uploading reports, add the summary fields to the existing Supabase `reports` table in the SQL editor:
 
@@ -45,6 +45,16 @@ The responsive browser application is dependency-free static HTML/CSS/JS in `ser
    ```
 
 5. Open `http://localhost:8000`.
+
+### Sample lab trends
+
+To populate the Trends page for the configured prototype patient, run:
+
+```powershell
+.\server\myenv\Scripts\python.exe server\seed_sample_trends.py --apply
+```
+
+This adds six reports and 30 invented lab results. They use ordinary lab names in the UI and retain an internal `synthetic` marker in report metadata. Re-running the command updates older seed rows and fills missing rows without duplicating existing ones. Refresh the Trends page to see the Glucose, Hemoglobin, LDL Cholesterol, TSH, and Platelets series.
 
 ## API
 

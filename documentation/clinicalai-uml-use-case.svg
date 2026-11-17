@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2480" height="1500" viewBox="0 0 2480 1500"><rect width="100%" height="100%" fill="white"/>
+<text x="40" y="65" font-family="Arial, sans-serif" font-size="40" font-weight="700" text-anchor="start" fill="#142732">UML Use Case Diagram — ClinicalAI</text>
+<rect x="380" y="130" width="1520" height="1240" rx="12" fill="#f0faf4" stroke="#4c9775" stroke-width="3"/>
+<text x="1140" y="187" font-family="Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle" fill="#142732">ClinicalAI System</text>
+<polyline points="186,738 550,265" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="265" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="271.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Upload Medical PDF</text>
+<polyline points="186,738 550,375" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="375" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="381.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Browse and Filter Reports</text>
+<polyline points="186,738 550,485" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="485" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="491.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">View Report, Summary and Original PDF</text>
+<polyline points="186,738 550,595" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="595" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="601.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Retry Failed Report Summary</text>
+<polyline points="186,738 550,705" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="705" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="711.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Manage Report Tags</text>
+<polyline points="186,738 550,815" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="815" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="821.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">View Health Record</text>
+<polyline points="186,738 550,925" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="925" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="931.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">View Lab Trends and Timeline</text>
+<polyline points="186,738 550,1035" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="1035" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="1041.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Ask Questions and View Citations</text>
+<polyline points="186,738 550,1145" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="1145" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="1151.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Export Doctor Summary PDF</text>
+<polyline points="186,738 550,1255" fill="none" stroke="#38576a" stroke-width="3"/>
+<ellipse cx="850" cy="1255" rx="300.0" ry="46.0" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="850" y="1261.5" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Delete Reports and Conversations</text>
+<circle cx="150" cy="687" r="22" fill="#d9eee6" stroke="#337960" stroke-width="3"/>
+<polyline points="150,709 150,776" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="113,738 187,738" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="150,776 116,820" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="150,776 184,820" fill="none" stroke="#337960" stroke-width="3"/>
+<text x="150" y="864" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">User</text>
+<ellipse cx="1550" cy="340" rx="225.0" ry="62.5" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="1550" y="329.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Process Medical Report</text>
+<text x="1550" y="365.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">OCR, NER and Metadata</text>
+<ellipse cx="1550" cy="650" rx="225.0" ry="62.5" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="1550" y="639.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Generate and Persist</text>
+<text x="1550" y="675.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Report Summary</text>
+<ellipse cx="1550" cy="1035" rx="225.0" ry="62.5" fill="#e1f3ff" stroke="#3c92d9" stroke-width="3"/>
+<text x="1550" y="1024.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Retrieve Evidence and</text>
+<text x="1550" y="1060.0" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="middle" fill="#142732">Generate Cited Answer</text>
+<line x1="1137" y1="275" x2="1340" y2="320" stroke="#41769c" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1322.4816377060413,324.1360588169907 1340,320" fill="none" stroke="#41769c" stroke-width="3"/>
+<polyline points="1325.8705251991476,308.8484107925339 1340,320" fill="none" stroke="#41769c" stroke-width="3"/>
+<text x="1150" y="305" font-family="Arial, sans-serif" font-size="25" font-weight="400" text-anchor="start" fill="#142732">«include»</text>
+<line x1="1550" y1="403" x2="1550" y2="587" stroke="#41769c" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1542.1706203859978,570.7919521576518 1550,587" fill="none" stroke="#41769c" stroke-width="3"/>
+<polyline points="1557.8293796140022,570.7919521576518 1550,587" fill="none" stroke="#41769c" stroke-width="3"/>
+<text x="1580" y="495" font-family="Arial, sans-serif" font-size="25" font-weight="400" text-anchor="start" fill="#142732">«include»</text>
+<line x1="1137" y1="610" x2="1340" y2="635" stroke="#41769c" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1322.9565023412515,640.7895757665164 1340,635" fill="none" stroke="#41769c" stroke-width="3"/>
+<polyline points="1324.8704614678848,625.2482276582541 1340,635" fill="none" stroke="#41769c" stroke-width="3"/>
+<text x="1150" y="665" font-family="Arial, sans-serif" font-size="25" font-weight="400" text-anchor="start" fill="#142732">«include»</text>
+<line x1="1150" y1="1035" x2="1325" y2="1035" stroke="#41769c" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1308.7919521576518,1042.8293796140022 1325,1035" fill="none" stroke="#41769c" stroke-width="3"/>
+<polyline points="1308.7919521576518,1027.1706203859978 1325,1035" fill="none" stroke="#41769c" stroke-width="3"/>
+<text x="1156" y="1020" font-family="Arial, sans-serif" font-size="25" font-weight="400" text-anchor="start" fill="#142732">«include»</text>
+<circle cx="2200" cy="357" r="22" fill="#d9eee6" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,379 2200,446" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2163,408 2237,408" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,446 2166,490" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,446 2234,490" fill="none" stroke="#337960" stroke-width="3"/>
+<text x="2200" y="534" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">Report Processing Services</text>
+<text x="2200" y="570" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">PaddleOCR · Gemini</text>
+<polyline points="1774,335 2163,408" fill="none" stroke="#38576a" stroke-width="3"/>
+<polyline points="1774,650 1970,650 1970,408 2163,408" fill="none" stroke="#38576a" stroke-width="3"/>
+<circle cx="2200" cy="962" r="22" fill="#d9eee6" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,984 2200,1051" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2163,1013 2237,1013" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,1051 2166,1095" fill="none" stroke="#337960" stroke-width="3"/>
+<polyline points="2200,1051 2234,1095" fill="none" stroke="#337960" stroke-width="3"/>
+<text x="2200" y="1139" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">Answer Generation Service</text>
+<text x="2200" y="1175" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">Groq</text>
+<polyline points="1775,1035 2163,1013" fill="none" stroke="#38576a" stroke-width="3"/>
+<text x="405" y="1418" font-family="Arial, sans-serif" font-size="25" font-weight="400" text-anchor="start" fill="#142732">Solid lines show actor participation; dashed arrows show included use cases.</text>
+<text x="1240" y="1479" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Fig. 3.5: UML Use Case Diagram for ClinicalAI</text>
+</svg>

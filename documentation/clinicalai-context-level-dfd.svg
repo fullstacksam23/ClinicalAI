@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1750" height="900" viewBox="0 0 1750 900"><rect width="1750" height="900" fill="white"/>
+<text x="45" y="70" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="start" fill="#10202a">Context-Level DFD (Level 0)</text>
+<rect x="45" y="395" width="200" height="160" rx="16" fill="#d7efff" stroke="#368dcb" stroke-width="3"/>
+<text x="145" y="474" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#10202a">User</text>
+<circle cx="840" cy="475" r="155" fill="#d7eee5" stroke="#24745f" stroke-width="3"/>
+<text x="840" y="439" font-family="Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle" fill="#10202a">0</text>
+<text x="840" y="480" font-family="Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle" fill="#10202a">ClinicalAI</text>
+<text x="840" y="521" font-family="Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle" fill="#10202a">System</text>
+<rect x="1430" y="205" width="275" height="190" rx="16" fill="#eee2ff" stroke="#8051c9" stroke-width="3"/>
+<text x="1567.5" y="269" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#10202a">External AI Services</text>
+<text x="1567.5" y="321" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="middle" fill="#10202a">PaddleOCR</text>
+<text x="1567.5" y="353" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="middle" fill="#10202a">Gemini · Groq</text>
+<rect x="1430" y="560" width="275" height="190" rx="16" fill="#eee2ff" stroke="#8051c9" stroke-width="3"/>
+<text x="1567.5" y="623" font-family="Arial, sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#10202a">External Data Services</text>
+<text x="1567.5" y="675" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="middle" fill="#10202a">Supabase</text>
+<text x="1567.5" y="708" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="middle" fill="#10202a">Qdrant</text>
+<polyline points="245,435 690,435" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="690,435 676.3036658953154,441.11640679589357 676.3036658953154,428.88359320410643" fill="#223344"/>
+<text x="280" y="338" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">Medical report PDFs</text>
+<text x="280" y="371" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">Questions, filters and tags</text>
+<text x="280" y="404" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">Summary export requests</text>
+<polyline points="690,520 245,520" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="245,520 258.69633410468464,513.8835932041064 258.69633410468464,526.1164067958936" fill="#223344"/>
+<text x="280" y="564" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Summaries and laboratory results</text>
+<text x="280" y="596" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Cited answers, trends and timeline</text>
+<text x="280" y="628" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Doctor summary PDF</text>
+<polyline points="930,349 1030,290 1430,290" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="1430,290 1416.3036658953154,296.11640679589357 1416.3036658953154,283.88359320410643" fill="#223344"/>
+<text x="1050" y="194" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">PDFs and extracted report text</text>
+<text x="1050" y="227" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">Retrieved evidence and prompts</text>
+<polyline points="1430,355 1050,355 978,404" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="978,404 985.881698290576,391.2376008502973 992.7641733346045,401.3506254047882" fill="#223344"/>
+<text x="1050" y="399" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">OCR text and report metadata</text>
+<text x="1050" y="432" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#10202a">Generated summaries and answers</text>
+<polyline points="972,575 1045,610 1430,610" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="1430,610 1416.3036658953154,616.1164067958936 1416.3036658953154,603.8835932041064" fill="#223344"/>
+<text x="1050" y="521" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Report and laboratory records</text>
+<text x="1050" y="553" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Embeddings, summaries and tags</text>
+<text x="1050" y="585" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Patient-scoped retrieval queries</text>
+<polyline points="1430,690 1045,690 930,601" fill="none" stroke="#223344" stroke-width="3"/>
+<polygon points="930,601 944.574938509272,604.5455842185655 937.0880347492299,614.2196733467098" fill="#223344"/>
+<text x="1050" y="733" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Stored reports and laboratory data</text>
+<text x="1050" y="765" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Retrieved supporting evidence</text>
+<text x="1050" y="797" font-family="Arial, sans-serif" font-size="23" font-weight="400" text-anchor="start" fill="#10202a">Persistence status</text>
+<text x="875" y="869" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#10202a">Fig. 3.2: Level 0 DFD for ClinicalAI</text>
+</svg>

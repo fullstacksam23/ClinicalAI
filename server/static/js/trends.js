@@ -19,24 +19,21 @@ function cssColor(token) {
     .trim();
 }
 
-function trendWarning(analyte, data) {
-  if (!data || !data.warning) return '';
-  return `
-      <div class="trend-warning card">
-        <span class="eyebrow">Data Quality Notice</span>
-        <p class="muted">${esc(data.warning)}</p>
-    </div>
-  `;
-}
-
 function trendChartContainer(analyte) {
   return `
     <div class="trend-panel card" id="trend-${esc(analyte)}">
-      <h3>${esc(analyte)}</h3>
-      <div class="chart-wrapper">
-        <canvas id="chart-${esc(analyte)}"></canvas>
+      <div class="trend-panel-head">
+        <div>
+          <span class="eyebrow">Lab history</span>
+          <h3>${esc(analyte)}</h3>
+        </div>
       </div>
-      <div class="trend-summary" id="summary-${esc(analyte)}"></div>
+      <div class="trend-panel-body">
+        <div class="chart-wrapper">
+          <canvas id="chart-${esc(analyte)}"></canvas>
+        </div>
+        <div class="trend-summary" id="summary-${esc(analyte)}"></div>
+      </div>
     </div>
   `;
 }
@@ -54,17 +51,35 @@ function analytePills(analytes) {
   `).join('');
 }
 
-function renderTrendSummary(analyte, data) {
+function formatValue(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value))
+    ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(value))
+    : '—';
+}
+
+function renderTrendSummary(data) {
   const s = data.summary;
   if (!s) return '';
+  const first = data.series[0];
+  const latest = data.series[data.series.length - 1];
+  const comparable = !data.unit_mismatch;
+  const change = s.delta >= 0 ? `+${formatValue(s.delta)}` : formatValue(s.delta);
+  const pct = s.pct_change == null ? '' : ` (${s.pct_change > 0 ? '+' : ''}${formatValue(s.pct_change)}%)`;
+  const notes = [
+    data.unit_mismatch ? 'Units differ between reports. Compare each result in its reported unit.' : '',
+    data.ref_range_mismatch ? 'Reference ranges differ between reports. Check each result against its own range.' : ''
+  ].filter(Boolean);
   return `
-    <div class="detail-list" style="margin-top: 12px;">
-      <div><span>First value</span>${s.first_value !== undefined ? `${esc(String(s.first_value))} ${esc(data.series[0]?.unit || '')}` : '—'}</div>
-      <div><span>Latest value</span>${s.last_value !== undefined ? `${esc(String(s.last_value))} ${esc(data.series[data.series.length - 1]?.unit || '')}` : '—'}</div>
-      <div><span>Change</span>${s.delta !== undefined ? `${esc(String(s.delta >= 0 ? '+' : ''))}${esc(String(s.delta))} ${esc(data.series[0]?.unit || '')} (${s.pct_change !== null && s.pct_change !== undefined ? esc(String(s.pct_change)) + '%' : '—'})` : '—'}</div>
-      <div><span>Measurements</span>${esc(String(s.count))}</div>
-      <div><span>Out of range</span>${esc(String(s.out_of_range_count))}</div>
+    <div class="trend-values">
+      <div class="trend-value trend-value-latest"><span>Latest result</span><strong>${formatValue(s.last_value)} <small>${esc(latest?.unit || '')}</small></strong><small>${esc(date(latest?.report_date))}</small></div>
+      <div class="trend-value"><span>First result</span><strong>${formatValue(s.first_value)} <small>${esc(first?.unit || '')}</small></strong><small>${esc(date(first?.report_date))}</small></div>
     </div>
+    <div class="trend-facts">
+      <div><span>Change</span><strong>${comparable ? `${change} ${esc(first?.unit || '')}${pct}` : '—'}</strong></div>
+      <div><span>Measurements</span><strong>${esc(String(s.count))}</strong></div>
+      <div><span>Outside reference range</span><strong>${esc(String(s.out_of_range_count))}</strong></div>
+    </div>
+    ${notes.length ? `<p class="trend-note">${notes.map(esc).join(' ')}</p>` : ''}
   `;
 }
 
@@ -97,8 +112,11 @@ function createChart(analyte, data) {
       data: values,
       borderColor: primaryHover,
       backgroundColor: primaryChartFill,
-      tension: 0.3,
-      fill: true,
+      tension: 0,
+      fill: !data.unit_mismatch,
+      segment: data.unit_mismatch ? {
+        borderColor: context => units[context.p0DataIndex] === units[context.p1DataIndex] ? primaryHover : 'transparent'
+      } : undefined,
       pointRadius: 5,
       pointHoverRadius: 7,
       pointBackgroundColor: data.series.map((_, i) => inRange[i] === false ? critical : inRange[i] === true ? normal : primaryHover),
@@ -107,7 +125,7 @@ function createChart(analyte, data) {
     }
   ];
 
-  if (hasRefRange) {
+  if (hasRefRange && !data.ref_range_mismatch && !data.unit_mismatch) {
     const lowValues = data.series.filter(p => Number.isFinite(p.ref_low)).map(p => p.ref_low);
     const highValues = data.series.filter(p => Number.isFinite(p.ref_high)).map(p => p.ref_high);
     const lowAverage = lowValues.length ? lowValues.reduce((sum, value) => sum + value, 0) / lowValues.length : null;
@@ -158,6 +176,7 @@ function createChart(analyte, data) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          filter: context => context.datasetIndex === 0,
           backgroundColor: textPrimary,
           titleColor: surface,
           bodyColor: surface,
@@ -186,7 +205,7 @@ function createChart(analyte, data) {
           ticks: { color: textSecondary, font: { size: 11 } },
           title: {
             display: true,
-            text: data.series[0]?.unit || '',
+            text: data.unit_mismatch ? 'Reported value' : data.series[0]?.unit || '',
             color: textSecondary,
             font: { size: 11, weight: 500 }
           }
@@ -195,7 +214,7 @@ function createChart(analyte, data) {
     }
   });
 
-  document.getElementById(`summary-${analyte}`).innerHTML = renderTrendSummary(analyte, data);
+  document.getElementById(`summary-${analyte}`).innerHTML = renderTrendSummary(data);
 }
 
 export async function trends() {
@@ -344,7 +363,7 @@ export async function trends() {
         return;
       }
 
-      container.innerHTML = analytes.map(a => trendWarning(a, data[a]) + trendChartContainer(a)).join('');
+      container.innerHTML = analytes.map(trendChartContainer).join('');
 
       for (const analyte of analytes) {
         if (data[analyte] && data[analyte].series?.length) {

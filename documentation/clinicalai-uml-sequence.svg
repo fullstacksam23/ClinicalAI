@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3300" height="2460" viewBox="0 0 3300 2460"><rect width="100%" height="100%" fill="white"/>
+<text x="45" y="65" font-family="Arial, sans-serif" font-size="40" font-weight="700" text-anchor="start" fill="#142732">UML Sequence Diagram — ClinicalAI Medical Report Processing</text>
+<text x="45" y="120" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="start" fill="#142732">Interaction sequence for an accepted PDF upload</text>
+<circle cx="150" cy="187" r="22" fill="#ccecff" stroke="#3b89ba" stroke-width="3"/>
+<polyline points="150,209 150,249" fill="none" stroke="#334f63" stroke-width="3"/>
+<polyline points="120,226 180,226" fill="none" stroke="#334f63" stroke-width="3"/>
+<polyline points="150,249 125,278" fill="none" stroke="#334f63" stroke-width="3"/>
+<polyline points="150,249 175,278" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="150" y="319" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle" fill="#142732">User</text>
+<polyline points="150,335 150,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="415" y="160" width="310" height="110" rx="16" fill="#d8edff" stroke="#3b89ba" stroke-width="3"/>
+<text x="570" y="206" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Browser</text>
+<text x="570" y="241" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Interface</text>
+<polyline points="570,335 570,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="835" y="160" width="310" height="110" rx="16" fill="#e8deff" stroke="#8b63c7" stroke-width="3"/>
+<text x="990" y="206" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">FastAPI</text>
+<text x="990" y="241" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Backend</text>
+<polyline points="990,335 990,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="1255" y="160" width="310" height="110" rx="16" fill="#dcefe3" stroke="#559e6d" stroke-width="3"/>
+<text x="1410" y="206" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Preprocessing</text>
+<text x="1410" y="241" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">OCR / NER / Metadata</text>
+<polyline points="1410,335 1410,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="1675" y="160" width="310" height="110" rx="16" fill="#d8edff" stroke="#3b89ba" stroke-width="3"/>
+<text x="1830" y="206" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">PaddleOCR</text>
+<text x="1830" y="241" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Service</text>
+<polyline points="1830,335 1830,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="2095" y="160" width="310" height="110" rx="16" fill="#ffedd4" stroke="#d8a046" stroke-width="3"/>
+<text x="2250" y="206" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Gemini</text>
+<text x="2250" y="241" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Service</text>
+<polyline points="2250,335 2250,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="2515" y="160" width="310" height="110" rx="16" fill="#e9ddff" stroke="#8b63c7" stroke-width="3"/>
+<text x="2670" y="226" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Supabase</text>
+<polyline points="2670,335 2670,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="2935" y="160" width="310" height="110" rx="16" fill="#ffe0e9" stroke="#cd678e" stroke-width="3"/>
+<text x="3090" y="226" font-family="Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#142732">Qdrant</text>
+<polyline points="3090,335 3090,2350" fill="none" stroke="#80a9c5" stroke-width="2" stroke-dasharray="12 11"/>
+<rect x="140" y="370" width="20" height="45" rx="0" fill="#ccecff" stroke="#3b89ba" stroke-width="3"/>
+<rect x="560" y="380" width="20" height="1910" rx="0" fill="#d8edff" stroke="#3b89ba" stroke-width="3"/>
+<rect x="980" y="460" width="20" height="1740" rx="0" fill="#e8deff" stroke="#8b63c7" stroke-width="3"/>
+<rect x="1400" y="650" width="20" height="570" rx="0" fill="#dcefe3" stroke="#559e6d" stroke-width="3"/>
+<rect x="1820" y="740" width="20" height="95" rx="0" fill="#d8edff" stroke="#3b89ba" stroke-width="3"/>
+<rect x="2240" y="1020" width="20" height="95" rx="0" fill="#ffedd4" stroke="#d8a046" stroke-width="3"/>
+<rect x="2660" y="1300" width="20" height="100" rx="0" fill="#e9ddff" stroke="#8b63c7" stroke-width="3"/>
+<rect x="3080" y="1550" width="20" height="95" rx="0" fill="#ffe0e9" stroke="#cd678e" stroke-width="3"/>
+<rect x="2240" y="1770" width="20" height="95" rx="0" fill="#ffedd4" stroke="#d8a046" stroke-width="3"/>
+<rect x="2660" y="1950" width="20" height="95" rx="0" fill="#e9ddff" stroke="#8b63c7" stroke-width="3"/>
+<polyline points="150,380 570,380" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="570,380 553,371 553,389" fill="#334f63"/>
+<text x="360.0" y="363" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">1. Choose medical PDF</text>
+<polyline points="570,460 990,460" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="990,460 973,451 973,469" fill="#334f63"/>
+<text x="780.0" y="443" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">2. POST PDF upload</text>
+<polyline points="990,530 1070,530 1070,585 990,585" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="990,585 1007,576 1007,594" fill="#334f63"/>
+<text x="1090" y="546" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">3. Validate PDF and size;</text>
+<text x="1090" y="579" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">resolve patient scope</text>
+<polyline points="990,650 1410,650" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="1410,650 1393,641 1393,659" fill="#334f63"/>
+<text x="1200.0" y="633" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">4. ProcessFile(PDF)</text>
+<polyline points="1410,740 1830,740" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="1830,740 1813,731 1813,749" fill="#334f63"/>
+<text x="1620.0" y="723" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">5. Recognize document</text>
+<polyline points="1830,830 1410,830" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1427,821 1410,830 1427,839" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1620.0" y="813" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">6. OCR blocks, text and tables</text>
+<polyline points="1410,900 1490,900 1490,955 1410,955" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="1410,955 1427,946 1427,964" fill="#334f63"/>
+<text x="1510" y="916" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">7. Parse laboratory tables;</text>
+<text x="1510" y="949" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">extract biomedical entities</text>
+<polyline points="1410,1020 2250,1020" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="2250,1020 2233,1011 2233,1029" fill="#334f63"/>
+<text x="1830.0" y="1003" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">8. Extract report metadata</text>
+<polyline points="2250,1110 1410,1110" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1427,1101 1410,1110 1427,1119" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1830.0" y="1093" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">9. Metadata for validation</text>
+<polyline points="1410,1210 990,1210" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1007,1201 990,1210 1007,1219" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1200.0" y="1158" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">10. Fields, labs, text</text>
+<text x="1200.0" y="1193" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">and clinical entities</text>
+<polyline points="990,1300 2670,1300" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="2670,1300 2653,1291 2653,1309" fill="#334f63"/>
+<text x="1830.0" y="1283" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">11. Save patient-owned report and laboratory records</text>
+<polyline points="2670,1390 990,1390" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1007,1381 990,1390 1007,1399" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1830.0" y="1373" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">12. Report ID and patient ID</text>
+<polyline points="930,1470 3230,1470 3230,2090 930,2090 930,1470" fill="none" stroke="#748b9a" stroke-width="2"/>
+<rect x="930" y="1470" width="85" height="40" rx="0" fill="#f3f7f9" stroke="#748b9a" stroke-width="3"/>
+<text x="944" y="1498" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="start" fill="#142732">par</text>
+<text x="1060" y="1504" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="start" fill="#142732">Embedding and vector indexing</text>
+<polyline points="990,1550 3090,1550" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="3090,1550 3073,1541 3073,1559" fill="#334f63"/>
+<text x="2040.0" y="1533" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">13. Index MedCPT report / laboratory embeddings</text>
+<polyline points="3090,1640 990,1640" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1007,1631 990,1640 1007,1649" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="2040.0" y="1623" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">14. Indexing outcome</text>
+<polyline points="930,1705 3230,1705" fill="none" stroke="#748b9a" stroke-width="2" stroke-dasharray="12 11"/>
+<text x="1060" y="1739" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="start" fill="#142732">Summary generation and persistence</text>
+<polyline points="990,1790 2250,1790" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="2250,1790 2233,1781 2233,1799" fill="#334f63"/>
+<text x="1620.0" y="1773" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">15. Generate grounded report summary</text>
+<polyline points="2250,1880 990,1880" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1007,1871 990,1880 1007,1889" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1620.0" y="1863" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">16. Summary text or generation failure</text>
+<polyline points="990,1970 2670,1970" fill="none" stroke="#334f63" stroke-width="3"/>
+<polygon points="2670,1970 2653,1961 2653,1979" fill="#334f63"/>
+<text x="1830.0" y="1953" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">17. Persist summary and completed / failed status</text>
+<polyline points="2670,2060 990,2060" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="1007,2051 990,2060 1007,2069" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="1830.0" y="2043" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">18. Persistence outcome</text>
+<polyline points="990,2200 570,2200" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="587,2191 570,2200 587,2209" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="780.0" y="2148" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">19. Return report details</text>
+<text x="780.0" y="2183" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">and final summary status</text>
+<polyline points="570,2290 150,2290" fill="none" stroke="#334f63" stroke-width="3" stroke-dasharray="12 11"/>
+<polyline points="167,2281 150,2290 167,2299" fill="none" stroke="#334f63" stroke-width="3"/>
+<text x="360.0" y="2238" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">20. Display original PDF,</text>
+<text x="360.0" y="2273" font-family="Arial, sans-serif" font-size="26" font-weight="400" text-anchor="middle" fill="#142732">summary and extracted results</text>
+<text x="1030" y="2144" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Both tasks settle before the response; a failed summary does not discard the saved report.</text>
+<text x="1650" y="2430" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#142732">Fig. 3.7: UML Sequence Diagram for ClinicalAI</text>
+</svg>

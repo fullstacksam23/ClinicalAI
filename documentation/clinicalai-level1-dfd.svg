@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2300" height="2520" viewBox="0 0 2300 2520"><rect width="100%" height="100%" fill="white"/>
+<text x="45" y="70" font-family="Arial, sans-serif" font-size="40" font-weight="700" text-anchor="start" fill="#142732">Level 1 Data Flow Diagram — ClinicalAI</text>
+<text x="45" y="119" font-family="Arial, sans-serif" font-size="27" font-weight="400" text-anchor="start" fill="#142732">Decomposition of Process 0: ClinicalAI System</text>
+<rect x="750" y="190" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="239" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">1.0</text>
+<text x="1020" y="277" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Validate Upload and</text>
+<text x="1020" y="315" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Resolve Patient Scope</text>
+<rect x="45" y="207" width="235" height="125" rx="16" fill="#d9efff" stroke="#3c94cd" stroke-width="3"/>
+<text x="162" y="279" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#142732">User</text>
+<polyline points="280,245 750,245" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="750,245 735.4565480052019,251.66993283886737 735.4565480052019,238.33006716113263" fill="#233747"/>
+<text x="330" y="227" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Medical report PDF</text>
+<polyline points="750,306 280,306" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="280,306 294.54345199479815,299.3300671611326 294.54345199479815,312.6699328388674" fill="#233747"/>
+<text x="310" y="348" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Validation result / upload status</text>
+<rect x="1880" y="230" width="370" height="95" fill="#fff8df"/><path d="M2250,230 H1880 V325 H2250 M1935,230 V325" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="282" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D1</text>
+<text x="2092" y="270" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Original PDFs</text>
+<text x="2092" y="303" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">and file associations</text>
+<polyline points="1290,272 1880,272" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,272 1865.4565480052017,278.6699328388674 1865.4565480052017,265.3300671611326" fill="#233747"/>
+<text x="1410" y="253" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Accepted PDF</text>
+<polyline points="1020,350 1020,480" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1020,480 1013.3300671611327,465.45654800520185 1026.6699328388675,465.45654800520185" fill="#233747"/>
+<text x="1055" y="413" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Validated PDF</text>
+<rect x="750" y="480" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="529" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">2.0</text>
+<text x="1020" y="567" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Extract Text, Entities</text>
+<text x="1020" y="605" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">and Report Metadata</text>
+<rect x="1880" y="510" width="370" height="110" rx="16" fill="#eee3ff" stroke="#8252c8" stroke-width="3"/>
+<text x="2065" y="555" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">External AI Services</text>
+<text x="2065" y="589" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">PaddleOCR · Gemini</text>
+<polyline points="1290,521 1880,521" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,521 1865.4565480052017,527.6699328388673 1865.4565480052017,514.3300671611327" fill="#233747"/>
+<text x="1340" y="503" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">PDF / recognized report text</text>
+<polyline points="1880,596 1290,596" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,596 1304.5434519947983,589.3300671611327 1304.5434519947983,602.6699328388673" fill="#233747"/>
+<text x="1330" y="634" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">OCR text / extracted metadata</text>
+<polyline points="1020,640 1020,820" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1020,820 1013.3300671611327,805.4565480052019 1026.6699328388675,805.4565480052019" fill="#233747"/>
+<text x="1055" y="718" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Report fields, laboratory results,</text>
+<text x="1055" y="751" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">clinical text and entities</text>
+<rect x="750" y="820" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="869" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">3.0</text>
+<text x="1020" y="907" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Persist Records and</text>
+<text x="1020" y="945" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Generate Embeddings</text>
+<rect x="1880" y="780" width="370" height="95" fill="#fff8df"/><path d="M2250,780 H1880 V875 H2250 M1935,780 V875" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="832" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D2</text>
+<text x="2092" y="820" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Clinical records</text>
+<text x="2092" y="853" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Supabase</text>
+<rect x="1880" y="905" width="370" height="95" fill="#fff8df"/><path d="M2250,905 H1880 V1000 H2250 M1935,905 V1000" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="957" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D3</text>
+<text x="2092" y="945" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Report / lab vectors</text>
+<text x="2092" y="978" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Qdrant</text>
+<rect x="1880" y="1030" width="370" height="95" fill="#fff8df"/><path d="M2250,1030 H1880 V1125 H2250 M1935,1030 V1125" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="1082" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D1</text>
+<text x="2092" y="1070" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Original PDFs</text>
+<text x="2092" y="1103" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">and file associations</text>
+<polyline points="1290,850 1530,827 1880,827" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,827 1865.4565480052017,833.6699328388673 1865.4565480052017,820.3300671611327" fill="#233747"/>
+<text x="1335" y="811" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Report and laboratory records</text>
+<polyline points="1290,910 1530,952 1880,952" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,952 1865.4565480052017,958.6699328388673 1865.4565480052017,945.3300671611327" fill="#233747"/>
+<text x="1535" y="930" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">MedCPT embeddings and IDs</text>
+<polyline points="1290,952 1490,1077 1880,1077" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1077 1865.4565480052017,1083.6699328388675 1865.4565480052017,1070.3300671611325" fill="#233747"/>
+<text x="1500" y="1056" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Report–file associations</text>
+<polyline points="1020,980 1020,1190" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1020,1190 1013.3300671611327,1175.4565480052017 1026.6699328388675,1175.4565480052017" fill="#233747"/>
+<text x="1060" y="1114" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Persisted report content</text>
+<text x="1060" y="1147" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">and report identifier</text>
+<rect x="750" y="1190" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="1239" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">4.0</text>
+<text x="1020" y="1277" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Generate and Persist</text>
+<text x="1020" y="1315" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Report Summary</text>
+<rect x="1880" y="1170" width="370" height="110" rx="16" fill="#eee3ff" stroke="#8252c8" stroke-width="3"/>
+<text x="2065" y="1215" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">External AI Service</text>
+<text x="2065" y="1249" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">Gemini</text>
+<rect x="1880" y="1320" width="370" height="95" fill="#fff8df"/><path d="M2250,1320 H1880 V1415 H2250 M1935,1320 V1415" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="1372" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D2</text>
+<text x="2092" y="1360" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Summaries and status</text>
+<text x="2092" y="1393" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Supabase</text>
+<polyline points="1290,1213 1880,1213" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1213 1865.4565480052017,1219.6699328388675 1865.4565480052017,1206.3300671611325" fill="#233747"/>
+<text x="1335" y="1194" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Report text, entities and labs</text>
+<polyline points="1880,1258 1290,1258" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,1258 1304.5434519947983,1251.3300671611325 1304.5434519947983,1264.6699328388675" fill="#233747"/>
+<text x="1380" y="1294" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Generated report summary</text>
+<polyline points="1290,1323 1530,1367 1880,1367" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1367 1865.4565480052017,1373.6699328388675 1865.4565480052017,1360.3300671611325" fill="#233747"/>
+<text x="1390" y="1402" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Summary and final status</text>
+<rect x="750" y="1610" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="1659" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">5.0</text>
+<text x="1020" y="1697" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Retrieve Evidence and</text>
+<text x="1020" y="1735" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Generate Cited Answer</text>
+<rect x="45" y="1630" width="235" height="125" rx="16" fill="#d9efff" stroke="#3c94cd" stroke-width="3"/>
+<text x="162" y="1702" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#142732">User</text>
+<polyline points="280,1670 750,1670" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="750,1670 735.4565480052019,1676.6699328388675 735.4565480052019,1663.3300671611325" fill="#233747"/>
+<text x="395" y="1647" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Question</text>
+<rect x="1880" y="1520" width="370" height="110" rx="16" fill="#eee3ff" stroke="#8252c8" stroke-width="3"/>
+<text x="2065" y="1565" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">External AI Service</text>
+<text x="2065" y="1599" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle" fill="#142732">Groq</text>
+<rect x="1880" y="1700" width="370" height="95" fill="#fff8df"/><path d="M2250,1700 H1880 V1795 H2250 M1935,1700 V1795" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="1752" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D2</text>
+<text x="2092" y="1740" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Structured records</text>
+<text x="2092" y="1773" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Supabase</text>
+<rect x="1880" y="1850" width="370" height="95" fill="#fff8df"/><path d="M2250,1850 H1880 V1945 H2250 M1935,1850 V1945" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="1902" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D3</text>
+<text x="2092" y="1890" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Semantic evidence</text>
+<text x="2092" y="1923" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Qdrant</text>
+<polyline points="1290,1635 1480,1550 1880,1550" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1550 1865.4565480052017,1556.6699328388675 1865.4565480052017,1543.3300671611325" fill="#233747"/>
+<text x="1430" y="1484" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Question, retrieved evidence</text>
+<text x="1430" y="1517" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">and prompts</text>
+<polyline points="1880,1600 1550,1600 1290,1660" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,1660 1302.671213770877,1650.2306427246858 1305.6708093866002,1663.2288903928195" fill="#233747"/>
+<text x="1570" y="1637" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Retrieval plan / answer text</text>
+<polyline points="1290,1690 1510,1720 1880,1720" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1720 1865.4565480052017,1726.6699328388675 1865.4565480052017,1713.3300671611325" fill="#233747"/>
+<text x="1535" y="1700" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Patient-scoped SQL query</text>
+<polyline points="1880,1772 1490,1772 1290,1720" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,1720 1305.7538610582183,1717.2043137231876 1302.3970992757027,1730.1149359636318" fill="#233747"/>
+<text x="1460" y="1809" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Matching report / lab records</text>
+<polyline points="1290,1750 1305,1750 1305,1870 1880,1870" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,1870 1865.4565480052017,1876.6699328388675 1865.4565480052017,1863.3300671611325" fill="#233747"/>
+<text x="1490" y="1854" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Patient-scoped vector query</text>
+<polyline points="1880,1920 1180,1920 1180,1770" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1180,1770 1186.6699328388675,1784.5434519947983 1173.3300671611325,1784.5434519947983" fill="#233747"/>
+<text x="1420" y="1956" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Relevant report / lab evidence</text>
+<polyline points="1020,1770 1020,2090" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1020,2090 1013.3300671611327,2075.456548005202 1026.6699328388675,2075.456548005202" fill="#233747"/>
+<text x="1060" y="2009" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Grounded answer</text>
+<text x="1060" y="2042" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">and source citations</text>
+<rect x="750" y="2090" width="540" height="160" rx="38" fill="#d9eee6" stroke="#28765f" stroke-width="3"/>
+<text x="1020" y="2139" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">6.0</text>
+<text x="1020" y="2177" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">Present Records, Trends</text>
+<text x="1020" y="2215" font-family="Arial, sans-serif" font-size="29" font-weight="700" text-anchor="middle" fill="#142732">and Doctor Summary Export</text>
+<rect x="45" y="2110" width="235" height="125" rx="16" fill="#d9efff" stroke="#3c94cd" stroke-width="3"/>
+<text x="162" y="2182" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle" fill="#142732">User</text>
+<polyline points="280,2143 750,2143" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="750,2143 735.4565480052019,2149.669932838867 735.4565480052019,2136.330067161133" fill="#233747"/>
+<text x="320" y="2080" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Filters, tags, record requests</text>
+<text x="320" y="2113" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">and export requests</text>
+<polyline points="750,2200 280,2200" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="280,2200 294.54345199479815,2193.330067161133 294.54345199479815,2206.669932838867" fill="#233747"/>
+<text x="300" y="2254" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Reports, summaries, laboratory results,</text>
+<text x="300" y="2287" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">cited answers, trends, timeline and PDF</text>
+<rect x="1880" y="2080" width="370" height="95" fill="#fff8df"/><path d="M2250,2080 H1880 V2175 H2250 M1935,2080 V2175" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="2132" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D2</text>
+<text x="2092" y="2120" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Records and summaries</text>
+<text x="2092" y="2153" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Supabase</text>
+<rect x="1880" y="2250" width="370" height="95" fill="#fff8df"/><path d="M2250,2250 H1880 V2345 H2250 M1935,2250 V2345" fill="none" stroke="#a18025" stroke-width="3"/>
+<text x="1907" y="2302" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#142732">D1</text>
+<text x="2092" y="2290" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">Original PDFs</text>
+<text x="2092" y="2323" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#142732">and file associations</text>
+<polyline points="1290,2130 1880,2110" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,2110 1865.690866340665,2117.158819310423 1865.2389270901672,2103.826611420735" fill="#233747"/>
+<text x="1410" y="2093" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Scoped reads / tag updates</text>
+<polyline points="1880,2150 1290,2180" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,2180 1304.1859760407845,2172.600129476113 1304.8633991344009,2185.9227836505725" fill="#233747"/>
+<text x="1380" y="2212" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Reports, labs and summaries</text>
+<polyline points="1290,2220 1520,2270 1880,2270" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1880,2270 1865.4565480052017,2276.669932838867 1865.4565480052017,2263.330067161133" fill="#233747"/>
+<text x="1470" y="2247" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Report / original-file lookup</text>
+<polyline points="1880,2320 1320,2320 1290,2240" fill="none" stroke="#233747" stroke-width="3"/>
+<polygon points="1290,2240 1301.3517996464466,2251.2754886717576 1288.8612941875317,2255.959428218851" fill="#233747"/>
+<text x="1430" y="2358" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Original PDF and file location</text>
+<text x="45" y="2414" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Repeated User and D1–D3 symbols refer to the same entities and data stores.</text>
+<text x="45" y="2447" font-family="Arial, sans-serif" font-size="24" font-weight="400" text-anchor="start" fill="#142732">Patient scope is resolved by the server and applied to all record and retrieval operations.</text>
+<text x="1150" y="2508" font-family="Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#142732">Fig. 3.3: Level 1 DFD for ClinicalAI</text>
+</svg>

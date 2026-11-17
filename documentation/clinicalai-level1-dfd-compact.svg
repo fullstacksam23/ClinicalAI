@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040"><rect width="100%" height="100%" fill="white"/>
+<text x="35" y="54" font-family="Arial,sans-serif" font-size="32" font-weight="700" text-anchor="start" fill="#132635">Level 1 DFD — ClinicalAI</text>
+<rect x="40" y="130" width="150" height="100" rx="8" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="115.0" y="188.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">User</text>
+<rect x="350" y="130" width="250" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="475.0" y="174.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">1. Upload Validation</text>
+<text x="475.0" y="202.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">and Patient Scope</text>
+<rect x="810" y="130" width="250" height="100" rx="8" fill="#ece0ff" stroke="#8652ce" stroke-width="3"/>
+<path d="M810,151 H1060" stroke="#8652ce" stroke-width="2"/>
+<text x="935.0" y="181.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">D2. Clinical Records</text>
+<text x="935.0" y="209.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Supabase</text>
+<rect x="350" y="350" width="250" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="475.0" y="394.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">2. OCR and Clinical</text>
+<text x="475.0" y="422.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Data Extraction</text>
+<rect x="810" y="350" width="250" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="935.0" y="394.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">3. Record Storage</text>
+<text x="935.0" y="422.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">and Vector Indexing</text>
+<rect x="1270" y="350" width="270" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="1405.0" y="394.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">4. Report Summary</text>
+<text x="1405.0" y="422.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Generation</text>
+<rect x="1270" y="130" width="270" height="100" rx="8" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="1405.0" y="188.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Gemini</text>
+<rect x="40" y="350" width="220" height="100" rx="8" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="150.0" y="394.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">PaddleOCR</text>
+<text x="150.0" y="422.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">and Gemini</text>
+<rect x="40" y="625" width="260" height="100" rx="8" fill="#ece0ff" stroke="#8652ce" stroke-width="3"/>
+<path d="M40,646 H300" stroke="#8652ce" stroke-width="2"/>
+<text x="170.0" y="676.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">D1. Original PDFs</text>
+<text x="170.0" y="704.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">and File Associations</text>
+<rect x="810" y="625" width="280" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="950.0" y="669.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">5. Patient-Scoped</text>
+<text x="950.0" y="697.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Evidence Retrieval</text>
+<rect x="1270" y="505" width="270" height="100" rx="8" fill="#ece0ff" stroke="#8652ce" stroke-width="3"/>
+<path d="M1270,526 H1540" stroke="#8652ce" stroke-width="2"/>
+<text x="1405.0" y="556.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">D2. Clinical Records</text>
+<text x="1405.0" y="584.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Supabase</text>
+<rect x="1270" y="650" width="270" height="100" rx="8" fill="#ece0ff" stroke="#8652ce" stroke-width="3"/>
+<path d="M1270,671 H1540" stroke="#8652ce" stroke-width="2"/>
+<text x="1405.0" y="701.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">D3. Vector Store</text>
+<text x="1405.0" y="729.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Qdrant</text>
+<rect x="810" y="835" width="280" height="100" rx="18" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="950.0" y="879.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">6. Answer Generation</text>
+<text x="950.0" y="907.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">and Record Presentation</text>
+<rect x="390" y="835" width="220" height="100" rx="8" fill="#d9efff" stroke="#328acd" stroke-width="3"/>
+<text x="500.0" y="893.0" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#132635">Groq</text>
+<polyline points="190,165 350,165" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="350,165 339.1946347717679,170.21958640933477 339.1946347717679,159.78041359066523" fill="#273b4b"/>
+<text x="210" y="154" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Medical PDF</text>
+<polyline points="350,212 190,212" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="190,212 200.80536522823212,206.78041359066523 200.80536522823212,217.21958640933477" fill="#273b4b"/>
+<text x="210" y="252" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Upload status</text>
+<polyline points="475,230 475,350" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="475,350 469.78041359066526,339.1946347717679 480.21958640933474,339.1946347717679" fill="#273b4b"/>
+<text x="500" y="293" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Validated PDF</text>
+<polyline points="350,188 320,188 320,663 300,663" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="300,663 310.8053652282321,657.7804135906653 310.8053652282321,668.2195864093347" fill="#273b4b"/>
+<text x="198" y="497" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Original file</text>
+<polyline points="350,380 260,380" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="260,380 270.8053652282321,374.78041359066526 270.8053652282321,385.21958640933474" fill="#273b4b"/>
+<text x="263" y="367" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">PDF / text</text>
+<polyline points="260,420 350,420" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="350,420 339.1946347717679,425.21958640933474 339.1946347717679,414.78041359066526" fill="#273b4b"/>
+<text x="262" y="452" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">OCR / fields</text>
+<polyline points="600,397 810,397" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="810,397 799.1946347717678,402.21958640933474 799.1946347717678,391.78041359066526" fill="#273b4b"/>
+<text x="633" y="356" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Text, fields</text>
+<text x="633" y="381" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">and lab results</text>
+<polyline points="935,350 935,230" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="935,230 940.2195864093347,240.80536522823212 929.7804135906653,240.80536522823212" fill="#273b4b"/>
+<text x="958" y="292" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Report / lab data</text>
+<polyline points="1060,397 1270,397" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1270,397 1259.1946347717678,402.21958640933474 1259.1946347717678,391.78041359066526" fill="#273b4b"/>
+<text x="1090" y="433" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Report content</text>
+<polyline points="1370,350 1370,230" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1370,230 1375.2195864093349,240.80536522823212 1364.7804135906651,240.80536522823212" fill="#273b4b"/>
+<text x="1275" y="294" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Text / labs</text>
+<polyline points="1450,230 1450,350" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1450,350 1444.7804135906651,339.1946347717679 1455.2195864093349,339.1946347717679" fill="#273b4b"/>
+<text x="1468" y="294" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Summary</text>
+<polyline points="1405,450 1405,505" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1405,505 1399.7804135906651,494.1946347717679 1410.2195864093349,494.1946347717679" fill="#273b4b"/>
+<text x="1420" y="485" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Summary / status</text>
+<polyline points="1060,365 1180,365 1180,85 1575,85 1575,790 1410,790 1410,750" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1410,750 1415.2195864093349,760.8053652282322 1404.7804135906651,760.8053652282322" fill="#273b4b"/>
+<text x="1430" y="814" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Embeddings</text>
+<polyline points="1090,645 1190,645 1190,535 1270,535" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1270,535 1259.1946347717678,540.2195864093347 1259.1946347717678,529.7804135906653" fill="#273b4b"/>
+<text x="1110" y="529" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Scoped query</text>
+<polyline points="1270,585 1160,585 1160,665 1090,665" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1090,665 1100.8053652282322,659.7804135906653 1100.8053652282322,670.2195864093347" fill="#273b4b"/>
+<text x="1190" y="626" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Records</text>
+<polyline points="1090,687 1270,687" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1270,687 1259.1946347717678,692.2195864093347 1259.1946347717678,681.7804135906653" fill="#273b4b"/>
+<text x="1155" y="662" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Vector query</text>
+<polyline points="1270,715 1090,715" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="1090,715 1100.8053652282322,709.7804135906653 1100.8053652282322,720.2195864093347" fill="#273b4b"/>
+<text x="1127" y="709" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Evidence</text>
+<polyline points="810,673 300,673" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="300,673 310.8053652282321,667.7804135906653 310.8053652282321,678.2195864093347" fill="#273b4b"/>
+<text x="430" y="656" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">File lookup</text>
+<polyline points="300,711 810,711" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="810,711 799.1946347717678,716.2195864093347 799.1946347717678,705.7804135906653" fill="#273b4b"/>
+<text x="422" y="746" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Original PDF / file link</text>
+<polyline points="950,725 950,835" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="950,835 944.7804135906653,824.1946347717678 955.2195864093347,824.1946347717678" fill="#273b4b"/>
+<text x="970" y="799" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Records and evidence</text>
+<polyline points="810,865 610,865" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="610,865 620.8053652282322,859.7804135906653 620.8053652282322,870.2195864093347" fill="#273b4b"/>
+<text x="623" y="835" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Question / evidence</text>
+<polyline points="610,907 810,907" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="810,907 799.1946347717678,912.2195864093347 799.1946347717678,901.7804135906653" fill="#273b4b"/>
+<text x="652" y="936" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Answer text</text>
+<polyline points="110,230 110,275 12,275 12,550 780,550 780,640 810,640" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="810,640 799.1946347717678,645.2195864093347 799.1946347717678,634.7804135906653" fill="#273b4b"/>
+<text x="355" y="537" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Questions, filters, tags and export requests</text>
+<polyline points="950,935 950,977 25,977 25,205 40,205" fill="none" stroke="#273b4b" stroke-width="2"/>
+<polygon points="40,205 29.194634771767877,210.21958640933477 29.194634771767877,199.78041359066523" fill="#273b4b"/>
+<text x="50" y="964" font-family="Arial,sans-serif" font-size="19" font-weight="400" text-anchor="start" fill="#132635">Summaries, lab results, cited answers, trends, timeline and doctor PDF</text>
+<text x="40" y="1015" font-family="Arial,sans-serif" font-size="18" font-weight="400" text-anchor="start" fill="#132635">D2 is repeated for readability. Patient scope is controlled by the server.</text>
+</svg>
